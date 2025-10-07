@@ -2,26 +2,33 @@ package config
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var DB *sql.DB
+type Config struct {
+	DbConnectionUrl string
+}
 
-func ConnectDatabase(){
-	var err error
+func InitConfig() Config {
 	dsn := os.Getenv("DB_CONN_URL")
-    DB, err = sql.Open("pgx", dsn)
+	return Config {
+		DbConnectionUrl: dsn,
+	}
+}
+
+func ConnectDatabase(config Config) (*sql.DB, error) {
+    db, err := sql.Open("pgx", config.DbConnectionUrl)
     if err != nil {
         log.Fatalf("Could not connect to the database: %v", err)
     }
 	
-	err = DB.Ping()
+	err = db.Ping()
 	if err != nil {
 		log.Fatalf("Could not ping database: %v", err)
 	}
-    fmt.Println("Database connected!")
+    
+	return db, nil
 }

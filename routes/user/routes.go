@@ -1,11 +1,14 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/IkBenJur/repetition-backend/controllers/auth"
 	"github.com/IkBenJur/repetition-backend/types"
+	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
@@ -28,10 +31,18 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 func (handler *Handler) handleRegister(c *gin.Context) {
 	var newUser types.RegisterUserPayload
 
+	// Parse JSON
 	if err := c.ShouldBindJSON(&newUser); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
         return
     }
+
+	// Validate struct
+	if err := utils.Validate.Struct(newUser); err != nil {
+		errors := err.(validator.ValidationErrors)
+        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		return
+	}
 	
 	// Check if user exists
 	_, err := handler.controller.GetUserByUsername(newUser.Username)

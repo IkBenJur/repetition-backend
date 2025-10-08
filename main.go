@@ -5,7 +5,8 @@ import (
 	"log"
 
 	"github.com/IkBenJur/repetition-backend/config"
-	"github.com/IkBenJur/repetition-backend/routes"
+	controller "github.com/IkBenJur/repetition-backend/controllers/user"
+	"github.com/IkBenJur/repetition-backend/routes/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,8 +24,10 @@ func NewServer(address string, db *sql.DB) *Server {
 
 func (server *Server) Run() {
 	router := gin.Default()
-	
-	routes.SetupRoutes(router)
+
+	userController := controller.NewController(server.db)
+	userHandler := user.NewHandler(userController)
+	userHandler.RegisterRoutes(router)
 
 	router.Run(server.Addres)
 }

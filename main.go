@@ -33,8 +33,7 @@ func (server *Server) Run() {
 }
 
 func main() {
-	envs := config.InitConfig()
-	db, err := config.ConnectDatabase(envs)
+	db, err := config.ConnectDatabase(config.Envs)
 	if err != nil {
 		log.Fatalf("Cannot create database %v", err)
 	}

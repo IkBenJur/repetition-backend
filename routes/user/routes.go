@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/IkBenJur/repetition-backend/config"
 	"github.com/IkBenJur/repetition-backend/controllers/auth"
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
@@ -50,8 +51,13 @@ func (handler *Handler) handleLogin(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"token": ""})
+	
+	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID)
+	if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
 func (handler *Handler) handleRegister(c *gin.Context) {

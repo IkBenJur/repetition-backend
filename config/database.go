@@ -10,14 +10,19 @@ import (
 
 type Config struct {
 	DbConnectionUrl string
+	JWTSecret string
 }
 
 func InitConfig() Config {
 	dsn := os.Getenv("DB_CONN_URL")
+	JWTSecret := os.Getenv("JWT_SECRET")
 	return Config {
 		DbConnectionUrl: dsn,
+		JWTSecret: JWTSecret,
 	}
 }
+
+var Envs = InitConfig()
 
 func ConnectDatabase(config Config) (*sql.DB, error) {
     db, err := sql.Open("pgx", config.DbConnectionUrl)

@@ -15,7 +15,7 @@ func NewController(db *sql.DB) *Controller {
 }
 
 func (controller *Controller) GetUserByUsername(username string) (*types.User, error) {
-	rows, err := controller.db.Query("SELECT * FROM users WHERE username = ?", username)
+	rows, err := controller.db.Query("SELECT * FROM users WHERE username = $1", username)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,30 @@ func (controller *Controller) GetUserByUsername(username string) (*types.User, e
 }
 
 func (controller *Controller) SaveUser(user types.User) error {
+	_, err := controller.db.Exec("INSERT INTO users (username, password) VALUES ($1, $2)", user.Username, user.Password)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (controller *Controller) GetUserById(id int) (*types.User, error) {
+	rows, err := controller.db.Query("SELECT * FROM users WHERE id = $1 LIMIT 1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	user := new (types.User)
+	
+	for rows.Next() {
+		user, err = scanRowIntoUser(rows)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return user, nil
 }
 
 func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {

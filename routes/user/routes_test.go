@@ -70,3 +70,6 @@ func (controller *mockUserController) GetUserByUsername(username string) (*types
 func (controller *mockUserController) SaveUser(user types.User) error {
 	return nil
 }
+func (controller *mockUserController) GetUserById(id int) (*types.User, error) {
+	return nil, fmt.Errorf("Failed to find user")
+}

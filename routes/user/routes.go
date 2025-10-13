@@ -25,7 +25,33 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 }
 
 func (handler *Handler) handleLogin(c *gin.Context) {
+	var loginUser types.LoginUserPayload
 
+	// Parse JSON
+	if err := c.ShouldBindJSON(&loginUser); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+        return
+    }
+
+	// Validate struct
+	if err := utils.Validate.Struct(loginUser); err != nil {
+		errors := err.(validator.ValidationErrors)
+        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		return
+	}
+
+	user, err := handler.controller.GetUserByUsername(loginUser.Username)
+	if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
+		return
+	}
+
+	if !auth.ComparePassword(user.Password, loginUser.Password) {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": ""})
 }
 
 func (handler *Handler) handleRegister(c *gin.Context) {
@@ -46,7 +72,7 @@ func (handler *Handler) handleRegister(c *gin.Context) {
 	
 	// Check if user exists
 	_, err := handler.controller.GetUserByUsername(newUser.Username)
-	if err == nil {
+	if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "User with username already exists"})
 		return
 	}
@@ -57,7 +83,7 @@ func (handler *Handler) handleRegister(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
-
+	
 	// Create new user
 	err = handler.controller.SaveUser(types.User{
 		Username: newUser.Username,

@@ -10,6 +10,12 @@ type UserController interface {
 	GetUserById(id int) (*User, error)
 }
 
+type ExerciseController interface {
+	GetAllExercise() ([]Exercise, error)
+	GetExerciseById(id int) (*Exercise, error)
+	SaveExercise(exercise Exercise) error
+}
+
 type RegisterUserPayload struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required,min=3,max=130"`

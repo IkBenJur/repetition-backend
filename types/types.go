@@ -26,3 +26,10 @@ type User struct {
 	Password string
 	CreatedAt time.Time
 }
+
+type Exercise struct {
+	ID int
+	Name string
+	MuscleGroup string
+	CreatedAt time.Time
+}

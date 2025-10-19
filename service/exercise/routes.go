@@ -1,10 +1,13 @@
 package exercise
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/IkBenJur/repetition-backend/types"
+	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
@@ -32,7 +35,31 @@ func (h *Handler) handleAllExercise(c *gin.Context) {
 }
 
 func (h *Handler) handleNewExercise(c *gin.Context) {
+	var newExercise types.NewExercisePayload
 
+	// Parse JSON
+	if err := c.ShouldBindJSON(&newExercise); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+        return
+	}
+
+	// Validate struct
+	if err := utils.Validate.Struct(newExercise); err != nil {
+		errors := err.(validator.ValidationErrors)
+        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		return
+	}
+
+	err := h.c.SaveExercise(types.Exercise{ 
+		Name: newExercise.Name,
+		MuscleGroup: newExercise.MuscleGroup,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise"})
+		return
+	}
+	
+	c.JSON(http.StatusCreated, nil)
 }
 
 func (h *Handler) handleGetExerciseById(c *gin.Context) {

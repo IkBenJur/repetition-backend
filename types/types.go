@@ -33,6 +33,11 @@ type User struct {
 	CreatedAt time.Time
 }
 
+type NewExercisePayload struct {
+	Name string `json:"name" validate:"required"`
+	MuscleGroup string `json:"muscleGroup" validate:"required"`
+}
+
 type Exercise struct {
 	ID int
 	Name string

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -14,15 +15,23 @@ type Config struct {
 }
 
 func InitConfig() Config {
-	dsn := os.Getenv("DB_CONN_URL")
-	JWTSecret := os.Getenv("JWT_SECRET")
+	godotenv.Load()
+	
 	return Config {
-		DbConnectionUrl: dsn,
-		JWTSecret: JWTSecret,
+		DbConnectionUrl: getEnv("DB_CONN_URL", ""),
+		JWTSecret: getEnv("JWT_SECRET", "a-string-secret-at-least-256-bits-long"),
 	}
 }
 
 var Envs = InitConfig()
+
+func getEnv(key string, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+
+	return fallback
+}
 
 func ConnectDatabase(config Config) (*sql.DB, error) {
     db, err := sql.Open("pgx", config.DbConnectionUrl)

@@ -3,6 +3,7 @@ package exercise
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
@@ -63,5 +64,19 @@ func (h *Handler) handleNewExercise(c *gin.Context) {
 }
 
 func (h *Handler) handleGetExerciseById(c *gin.Context) {
+	idParam := c.Param("id")
 
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		return
+	}
+
+	exercise, err := h.c.GetExerciseById(id)
+	if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"exercise": exercise})
 }

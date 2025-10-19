@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/IkBenJur/repetition-backend/config"
-	"github.com/IkBenJur/repetition-backend/controllers/user"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/gin-gonic/gin"
 )
 

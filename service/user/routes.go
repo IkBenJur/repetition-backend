@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/IkBenJur/repetition-backend/config"
-	"github.com/IkBenJur/repetition-backend/controllers/auth"
+	"github.com/IkBenJur/repetition-backend/service/auth"
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"

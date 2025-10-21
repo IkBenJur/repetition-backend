@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS userWorkout (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    dateStart TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    dateEnd TIMESTAMP,
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS userWorkoutExercise (
+    id SERIAL PRIMARY KEY,
+    userWorkoutId INT NOT NULL REFERENCES userWorkout(id),
+    exerciseId INT NOT NULL REFERENCES exercise(id),
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS userWorkoutExerciseSet (
+    id SERIAL PRIMARY KEY,
+    userWorkoutExercise INT NOT NULL REFERENCES userWorkoutExercise(id),
+    reps INT,
+    weight DECIMAL (5,2),
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

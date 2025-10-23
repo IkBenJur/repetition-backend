@@ -68,3 +68,8 @@ type UserWorkoutExerciseSet struct {
 	Weight float32
 	CreatedAt time.Time
 }
+
+type NewUserWorkoutPayload struct {
+	Name string `json:"name"`
+	UserId int `json:"userId" validate:"required"`
+}

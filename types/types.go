@@ -44,3 +44,27 @@ type Exercise struct {
 	MuscleGroup string
 	CreatedAt time.Time
 }
+
+type UserWorkout struct {
+	ID int
+	UserId int
+	Name string
+	DateStart time.Time
+	DateEnd time.Time
+	CreatedAt time.Time
+}
+
+type UserWorkoutExercise struct {
+	ID int
+	UserWorkoutId int
+	ExerciseId int
+	CreatedAt time.Time
+}
+
+type UserWorkoutExerciseSet struct {
+	ID int
+	UserWorkoutExerciseId int
+	Reps int
+	Weight float32
+	CreatedAt time.Time
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/IkBenJur/repetition-backend/service/auth"
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ func NewHandler(controller Controller, userController types.UserController) *Han
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/userWorkout", handler.handleSaveUserWorkout)
+	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleSaveUserWorkout)
 }
 
 func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
@@ -40,8 +41,8 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 		return
 	}
 
-	if _, err := handler.userController.GetUserById(newUserWorkout.UserId); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("couldn't find user with ID: %v", newUserWorkout.UserId)})
+	if newUserWorkout.UserId != c.GetInt("userId") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "haha dont even try it"})
 		return
 	}
 

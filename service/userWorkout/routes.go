@@ -1,4 +1,4 @@
-package userworkout
+package userWorkout
 
 import (
 	"fmt"

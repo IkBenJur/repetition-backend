@@ -52,6 +52,9 @@ type UserWorkout struct {
 	DateStart time.Time
 	DateEnd time.Time
 	CreatedAt time.Time
+
+	// Joined fields
+	UserWorkoutExercises []UserWorkoutExercise
 }
 
 type UserWorkoutExercise struct {
@@ -59,6 +62,9 @@ type UserWorkoutExercise struct {
 	UserWorkoutId int
 	ExerciseId int
 	CreatedAt time.Time
+
+	// Joined fields
+	UserWorkoutExerciseSets []UserWorkoutExerciseSet
 }
 
 type UserWorkoutExerciseSet struct {
@@ -69,7 +75,19 @@ type UserWorkoutExerciseSet struct {
 	CreatedAt time.Time
 }
 
+type UserWorkoutExercisePayload struct {
+	ExerciseId int `json:"exerciseId" validate:"required"`
+	UserWorkoutExerciseSets []UserWorkoutExerciseSetPayload `json:"userWorkoutExerciseSets"`
+}
+
+type UserWorkoutExerciseSetPayload struct {
+	UserWorkoutExerciseId int `json:"userWorkoutExerciseId"`
+	Reps int `json:"reps" validate:"required"`
+	Weight float32 `json:"weight" validate:"required"`
+}
+
 type NewUserWorkoutPayload struct {
 	Name string `json:"name"`
 	UserId int `json:"userId" validate:"required"`
+	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
 }

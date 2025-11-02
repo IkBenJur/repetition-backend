@@ -34,12 +34,6 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
-	fmt.Print(newUserWorkout.UserWorkoutExercises)
-
-	for _, test := range newUserWorkout.UserWorkoutExercises {
-		fmt.Println(test.ExerciseId)
-		fmt.Println(test.UserWorkoutExerciseSets)
-	}
 
 	if err := utils.Validate.Struct(newUserWorkout); err != nil {
 		errors := err.(validator.ValidationErrors)
@@ -55,7 +49,6 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 	userWorkout := UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
 	fmt.Print(userWorkout)
 	if err := handler.controller.SaveUserWorkout(userWorkout); err != nil {
-		fmt.Printf("Error occured %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return
 	}

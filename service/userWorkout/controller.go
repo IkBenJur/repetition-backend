@@ -10,8 +10,8 @@ type Controller struct {
 	db *sql.DB
 }
 
-func NewController (db *sql.DB) *Controller {
-	return &Controller{ db: db }
+func NewController(db *sql.DB) *Controller {
+	return &Controller{db: db}
 }
 
 func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
@@ -22,18 +22,18 @@ func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
 	defer tx.Rollback()
 
 	var workoutId int64
-	err = tx.QueryRow("INSERT INTO userWorkout (name) VALUES ($1)", workout.Name).Scan(&workoutId)
+	err = tx.QueryRow("INSERT INTO userWorkout (name) VALUES ($1) RETURNING id", workout.Name).Scan(&workoutId)
 	if err != nil {
 		return err
 	}
-	
-	exerciseStmt, err := tx.Prepare("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2)")
+
+	exerciseStmt, err := tx.Prepare("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2) RETURNING id")
 	if err != nil {
 		return err
 	}
 	defer exerciseStmt.Close()
 
-	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3)")
+	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3) RETURNING id")
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
 		if err != nil {
 			return err
 		}
-		
+
 		for _, set := range exercise.UserWorkoutExerciseSets {
 			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight)
 			if err != nil {
@@ -56,3 +56,4 @@ func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
 
 	return tx.Commit()
 }
+

@@ -12,15 +12,15 @@ import (
 )
 
 type Handler struct {
-	controller Controller
+	controller     Controller
 	userController types.UserController
 }
 
 func NewHandler(controller Controller, userController types.UserController) *Handler {
-	return &Handler{ 
-		controller: controller,
+	return &Handler{
+		controller:     controller,
 		userController: userController,
-	 }
+	}
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
@@ -34,10 +34,16 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
+	fmt.Print(newUserWorkout.UserWorkoutExercises)
+
+	for _, test := range newUserWorkout.UserWorkoutExercises {
+		fmt.Println(test.ExerciseId)
+		fmt.Println(test.UserWorkoutExerciseSets)
+	}
 
 	if err := utils.Validate.Struct(newUserWorkout); err != nil {
 		errors := err.(validator.ValidationErrors)
-        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
 		return
 	}
 
@@ -46,9 +52,14 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 		return
 	}
 
-	if err := handler.controller.SaveUserWorkout(UserWorkoutPayloadIntoUserWorkout(newUserWorkout)); err != nil {
+	userWorkout := UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
+	fmt.Print(userWorkout)
+	if err := handler.controller.SaveUserWorkout(userWorkout); err != nil {
+		fmt.Printf("Error occured %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
+		return
 	}
 
 	c.JSON(http.StatusCreated, nil)
 }
+

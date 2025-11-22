@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/IkBenJur/repetition-backend/config"
+	userWorkoutExercise "github.com/IkBenJur/repetition-backend/service/UserWorkoutExercise"
 	"github.com/IkBenJur/repetition-backend/service/exercise"
 	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
@@ -37,6 +38,10 @@ func (server *Server) Run() {
 	userWorkoutController := userWorkout.NewController(server.db)
 	userWorkoutHandler := userWorkout.NewHandler(*userWorkoutController, userController)
 	userWorkoutHandler.RegisterRoutes(router)
+
+	userWorkoutExerciseController := userWorkoutExercise.NewController(server.db)
+	userWorkoutExerciseHandler := userWorkoutExercise.NewHandler(*userWorkoutExerciseController, userController, *userWorkoutController)
+	userWorkoutExerciseHandler.RegisterRoutes(router)
 
 	router.Run(server.Addres)
 }

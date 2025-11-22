@@ -26,5 +26,6 @@ func UserWorkoutexerciseIntoUserWorkoutexercise(payload UserWorkoutExercisePaylo
 	return UserWorkoutExercise {
 		UserWorkoutExerciseSets: sets,
 		ExerciseId:              payload.ExerciseId,
+		UserWorkoutId:           payload.UserWorkoutId,
 	}
 }

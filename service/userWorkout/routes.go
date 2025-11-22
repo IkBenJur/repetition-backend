@@ -46,7 +46,7 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 		return
 	}
 
-	userWorkout := UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
+	userWorkout := types.UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
 	
 	if err := handler.controller.SaveUserWorkout(userWorkout); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})

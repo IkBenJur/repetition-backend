@@ -22,7 +22,7 @@ func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
 	defer tx.Rollback()
 
 	var workoutId int64
-	err = tx.QueryRow("INSERT INTO userWorkout (name) VALUES ($1) RETURNING id", workout.Name).Scan(&workoutId)
+	err = tx.QueryRow("INSERT INTO userWorkout (name, userId) VALUES ($1, $2) RETURNING id", workout.Name, workout.UserId).Scan(&workoutId)
 	if err != nil {
 		return err
 	}
@@ -55,5 +55,22 @@ func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
 	}
 
 	return tx.Commit()
+}
+
+func (controller *Controller) FindUserIdForUserworkoutId(id int) (int, error) {
+	rows, err := controller.db.Query("SELECT userid FROM userworkout WHERE id = $1 LIMIT 1", id)
+	if err != nil {
+		return 0, err
+	}
+
+	userId := 0
+	for rows.Next() {
+		err := rows.Scan(&userId)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return userId, nil
 }
 

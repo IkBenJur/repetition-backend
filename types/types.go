@@ -82,7 +82,7 @@ type UserWorkoutExercisePayload struct {
 }
 
 type UserWorkoutExerciseSetPayload struct {
-	UserWorkoutExerciseId int `json:"userWorkoutExerciseId"`
+	UserWorkoutExerciseId int `json:"userWorkoutExerciseId" validate:"required"`
 	Reps int `json:"reps" validate:"required"`
 	Weight float32 `json:"weight" validate:"required"`
 }

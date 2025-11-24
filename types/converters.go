@@ -15,17 +15,21 @@ func UserWorkoutPayloadIntoUserWorkout(payload NewUserWorkoutPayload) UserWorkou
 
 func UserWorkoutexerciseIntoUserWorkoutexercise(payload UserWorkoutExercisePayload) UserWorkoutExercise {
 	sets := make([]UserWorkoutExerciseSet, len(payload.UserWorkoutExerciseSets))
-	for j, set := range payload.UserWorkoutExerciseSets {
-		sets[j] = UserWorkoutExerciseSet{
-			UserWorkoutExerciseId: set.UserWorkoutExerciseId,
-			Reps:                  set.Reps,
-			Weight:                set.Weight,
-		}
+	for i, set := range payload.UserWorkoutExerciseSets {
+		sets[i] = UserWorkoutExerciseSetIntoUserWorkoutExerciseSet(set)
 	}
 
 	return UserWorkoutExercise {
 		UserWorkoutExerciseSets: sets,
 		ExerciseId:              payload.ExerciseId,
 		UserWorkoutId:           payload.UserWorkoutId,
+	}
+}
+
+func UserWorkoutExerciseSetIntoUserWorkoutExerciseSet(payload UserWorkoutExerciseSetPayload) UserWorkoutExerciseSet {
+	return UserWorkoutExerciseSet {
+			UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
+			Reps:                  payload.Reps,
+			Weight:                payload.Weight,
 	}
 }

@@ -2,7 +2,6 @@ package userWorkoutExercise
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/IkBenJur/repetition-backend/types"
 )
@@ -43,4 +42,21 @@ func (controller *Controller) SaveUserWorkoutExercise(workoutExercise types.User
 	}
 
 	return tx.Commit()
+}
+
+func (controller *Controller) FindUserIdForUserWorkoutExerciseId(id int) (int, error) {
+	rows, err := controller.db.Query("SELECT uw.userid FROM userworkoutexercise uwe JOIN userworkout uw ON uw.id = uwe.userworkoutid WHERE uwe.id = $1 LIMIT 1", id)
+	if err != nil {
+		return 0, err
+	}
+
+	userId := 0
+	for rows.Next() {
+		err := rows.Scan(&userId)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return userId, nil
 }

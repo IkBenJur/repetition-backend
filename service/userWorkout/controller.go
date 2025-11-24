@@ -74,3 +74,69 @@ func (controller *Controller) FindUserIdForUserworkoutId(id int) (int, error) {
 	return userId, nil
 }
 
+func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWorkout, error) {
+	var userWorkout *types.UserWorkout
+    exerciseMap := map[int]*types.UserWorkoutExercise{}
+
+	rows, err := controller.db.Query(`SELECT
+										uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
+										uwe.id, uwe.userworkoutid, uwe.exerciseid, uwe.createdat,
+										uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.createdat
+									FROM userworkout uw
+									LEFT JOIN userworkoutexercise uwe
+										ON uw.id = uwe.userworkoutid
+									LEFT JOIN userworkoutexerciseset uwes
+										ON uwe.id = uwes.userworkoutexerciseid
+									WHERE uw.id = (
+										SELECT id
+										FROM userworkout
+										WHERE userid = $1 AND dateend IS NULL
+										ORDER BY datestart DESC
+										LIMIT 1
+									)
+	`, id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var (
+			uw types.UserWorkout
+			uwe types.UserWorkoutExercise
+			uwes types.UserWorkoutExerciseSet
+		)
+
+		err := rows.Scan(
+			&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
+			&uwe.ID, &uwe.UserWorkoutId, &uwe.ExerciseId, &uwe.CreatedAt,
+			&uwes.ID, &uwes.UserWorkoutExerciseId, &uwes.Reps, &uwes.Weight, &uwes.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if userWorkout == nil {
+			userWorkout = &uw
+		}
+
+		uweIsNotNull := uwe.ID != 0
+		if uweIsNotNull {
+			// Check whether exercise had already been added or not
+			// If not add it to the map and workout
+			if _, ok := exerciseMap[uwe.ID]; !ok {
+				exerciseMap[uwe.ID] = &uwe
+				userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, uwe)
+			}
+		}
+
+		uwesIsNotNull := uwes.ID != 0 
+		if uwesIsNotNull {
+			// Add the set to the existing exercise
+			parent := exerciseMap[uwe.ID]
+			parent.UserWorkoutExerciseSets = append(parent.UserWorkoutExerciseSets, uwes)
+		}
+	}
+
+	return userWorkout, nil
+}
+

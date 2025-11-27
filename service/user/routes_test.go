@@ -76,3 +76,6 @@ func (controller *mockUserController) GetUserById(id int) (*types.User, error) {
 func (controller *mockUserController) UpdateActiveUserWorkoutForUserId(id int, id2 int) error {
 	return nil
 }
+func (controller *mockUserController) UpdateUser(user types.User) error {
+	return nil
+}

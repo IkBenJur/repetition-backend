@@ -41,6 +41,11 @@ func (controller *Controller) CreateNewUser(user types.User) error {
 	return nil
 }
 
+func (controller *Controller) UpdateUser(user types.User) error {
+	_, err := controller.db.Exec("UPDATE users SET username = $2, password = $3, active_userworkout_id = $4 WHERE id = $1", user.ID, user.Username, user.Password, user.ActiveUserWorkoutId)
+	return err
+}
+
 func (controller *Controller) GetUserById(id int) (*types.User, error) {
 	rows, err := controller.db.Query("SELECT * FROM users WHERE id = $1 LIMIT 1", id)
 	if err != nil {

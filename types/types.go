@@ -28,6 +28,7 @@ type LoginUserPayload struct {
 
 type User struct {
 	ID int
+	ActiveUserWorkoutId int
 	Username string
 	Password string
 	CreatedAt time.Time

@@ -1,0 +1,1 @@
+ALTER TABLE users RENAME active_workout TO active_userworkout_id;

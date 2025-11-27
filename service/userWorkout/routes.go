@@ -3,6 +3,7 @@ package userWorkout
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/IkBenJur/repetition-backend/service/auth"
 	"github.com/IkBenJur/repetition-backend/types"
@@ -25,6 +26,8 @@ func NewHandler(controller Controller, userController types.UserController) *Han
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	router.GET("/userWorkout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
+	router.PUT("/userWorkout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
 }
 
 func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
@@ -75,3 +78,57 @@ func (handler *Handler) handleFindActiveUserWorkout(c *gin.Context) {
 	c.JSON(http.StatusFound, userWorkout)
 }
 
+func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
+	idParam := c.Param("id")
+	userId := c.GetInt("userId")
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		return
+	}
+	
+	workoutUserId, err := handler.controller.FindUserIdForUserworkoutId(id);
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	} 
+
+	if workoutUserId != userId {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid"})
+		return
+	}
+
+	err = handler.controller.MarkUserWorkoutAsComplete(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	user, err := handler.userController.GetUserById(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	// Check if active workout for user should also be reset
+	if user.ActiveUserWorkoutId == nil {
+		c.JSON(http.StatusOK, nil)
+		return
+	}
+
+	if *user.ActiveUserWorkoutId != id {
+		c.JSON(http.StatusOK, nil)
+		return
+	}
+
+	// Remove the active workout
+	user.ActiveUserWorkoutId = nil
+	err = handler.userController.UpdateUser(*user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}

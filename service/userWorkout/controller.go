@@ -116,6 +116,10 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 		}
 
 		if userWorkout == nil {
+			
+			//Initialize an empty array
+			uw.UserWorkoutExercises = make([]types.UserWorkoutExercise, 0)
+
 			userWorkout = &uw
 		}
 
@@ -124,8 +128,13 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 			// Check whether exercise had already been added or not
 			// If not add it to the map and workout
 			if _, ok := exerciseMap[uwe.ID]; !ok {
+				
+				// Initialize an empty array
+				uwe.UserWorkoutExerciseSets = make([]types.UserWorkoutExerciseSet, 0)
+
 				exerciseMap[uwe.ID] = &uwe
 				userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, uwe)
+
 			}
 		}
 

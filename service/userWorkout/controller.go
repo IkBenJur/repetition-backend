@@ -14,7 +14,7 @@ func NewController(db *sql.DB) *Controller {
 	return &Controller{db: db}
 }
 
-func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) (int, error) {
+func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (int, error) {
 	tx, err := controller.db.Begin()
 	if err != nil {
 		return -1, err

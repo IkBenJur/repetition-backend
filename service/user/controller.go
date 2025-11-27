@@ -32,7 +32,7 @@ func (controller *Controller) GetUserByUsername(username string) (*types.User, e
 	return user, nil
 }
 
-func (controller *Controller) SaveUser(user types.User) error {
+func (controller *Controller) CreateNewUser(user types.User) error {
 	_, err := controller.db.Exec("INSERT INTO users (username, password) VALUES ($1, $2)", user.Username, user.Password)
 	if err != nil {
 		return err

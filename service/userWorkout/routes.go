@@ -24,11 +24,10 @@ func NewHandler(controller Controller, userController types.UserController) *Han
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleSaveUserWorkout)
-	router.GET("/active-userWorkout", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
+	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
 }
 
-func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
+func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	var newUserWorkout types.NewUserWorkoutPayload
 
 	if err := c.ShouldBindJSON(&newUserWorkout); err != nil {
@@ -49,7 +48,7 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 
 	userWorkout := types.UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
 	
-	newWorkoutId, err := handler.controller.SaveUserWorkout(userWorkout) 
+	newWorkoutId, err := handler.controller.CreateNewUserWorkout(userWorkout) 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return
@@ -66,8 +65,6 @@ func (handler *Handler) handleSaveUserWorkout(c *gin.Context) {
 
 func (handler *Handler) handleFindActiveUserWorkout(c *gin.Context) {
 	userId := c.GetInt("userId")
-
-	fmt.Printf("%v", userId)
 
 	userWorkout, err := handler.controller.FindActiveWorkoutForUserId(userId)
 	if err != nil {

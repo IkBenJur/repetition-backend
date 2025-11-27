@@ -91,7 +91,7 @@ func (handler *Handler) handleRegister(c *gin.Context) {
 	}
 	
 	// Create new user
-	err = handler.controller.SaveUser(types.User{
+	err = handler.controller.CreateNewUser(types.User{
 		Username: newUser.Username,
 		Password: hashedPassword,
 	})

@@ -6,7 +6,7 @@ import (
 
 type UserController interface {
 	GetUserByUsername(username string) (*User, error)
-	SaveUser(user User) error
+	CreateNewUser(user User) error
 	GetUserById(id int) (*User, error)
 	UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error
 }

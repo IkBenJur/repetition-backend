@@ -50,7 +50,7 @@ type UserWorkout struct {
 	UserId int
 	Name string
 	DateStart time.Time
-	DateEnd time.Time
+	DateEnd *time.Time
 	CreatedAt time.Time
 
 	// Joined fields

@@ -2,6 +2,7 @@ package userWorkout
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/IkBenJur/repetition-backend/types"
 )
@@ -150,5 +151,10 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 	}
 
 	return userWorkout, nil
+}
+
+func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
+	_, err := controller.db.Exec("UPDATE userworkout SET dateend = $1 WHERE id = $2", time.Now(), id)
+	return err
 }
 

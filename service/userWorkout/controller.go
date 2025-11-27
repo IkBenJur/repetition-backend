@@ -14,47 +14,52 @@ func NewController(db *sql.DB) *Controller {
 	return &Controller{db: db}
 }
 
-func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) error {
+func (controller *Controller) SaveUserWorkout(workout types.UserWorkout) (int, error) {
 	tx, err := controller.db.Begin()
 	if err != nil {
-		return err
+		return -1, err
 	}
 	defer tx.Rollback()
 
-	var workoutId int64
+	var workoutId int
 	err = tx.QueryRow("INSERT INTO userWorkout (name, userId) VALUES ($1, $2) RETURNING id", workout.Name, workout.UserId).Scan(&workoutId)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	exerciseStmt, err := tx.Prepare("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2) RETURNING id")
 	if err != nil {
-		return err
+		return -1, err
 	}
 	defer exerciseStmt.Close()
 
 	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3) RETURNING id")
 	if err != nil {
-		return err
+		return -1, err
 	}
 	defer exerciseSetStmt.Close()
 
 	for _, exercise := range workout.UserWorkoutExercises {
-		var exerciseId int64
+		var exerciseId int
 		err = exerciseStmt.QueryRow(workoutId, exercise.ExerciseId).Scan(&exerciseId)
 		if err != nil {
-			return err
+			return -1, err
 		}
 
 		for _, set := range exercise.UserWorkoutExerciseSets {
 			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight)
 			if err != nil {
-				return err
+				return -1, err
 			}
 		}
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return -1, err
+	}
+
+	return workoutId, nil
 }
 
 func (controller *Controller) FindUserIdForUserworkoutId(id int) (int, error) {
@@ -88,11 +93,9 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 									LEFT JOIN userworkoutexerciseset uwes
 										ON uwe.id = uwes.userworkoutexerciseid
 									WHERE uw.id = (
-										SELECT id
-										FROM userworkout
-										WHERE userid = $1 AND dateend IS NULL
-										ORDER BY datestart DESC
-										LIMIT 1
+										SELECT active_userworkout_id
+										FROM users
+										WHERE id = $1
 									)
 	`, id)
 	if err != nil {

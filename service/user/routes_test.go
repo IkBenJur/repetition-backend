@@ -73,3 +73,6 @@ func (controller *mockUserController) SaveUser(user types.User) error {
 func (controller *mockUserController) GetUserById(id int) (*types.User, error) {
 	return nil, fmt.Errorf("Failed to find user")
 }
+func (controller *mockUserController) UpdateActiveUserWorkoutForUserId(id int, id2 int) error {
+	return nil
+}

@@ -75,3 +75,8 @@ func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 
 	return user, nil
 }
+
+func (controller *Controller) UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error {
+	_, err := controller.db.Exec("UPDATE users SET active_userworkout_id = $1 WHERE id = $2", activeUserWorkoutId, userId)
+	return err
+}

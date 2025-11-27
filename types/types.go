@@ -8,6 +8,7 @@ type UserController interface {
 	GetUserByUsername(username string) (*User, error)
 	SaveUser(user User) error
 	GetUserById(id int) (*User, error)
+	UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error
 }
 
 type ExerciseController interface {
@@ -28,7 +29,7 @@ type LoginUserPayload struct {
 
 type User struct {
 	ID int
-	ActiveUserWorkoutId int
+	ActiveUserWorkoutId *int
 	Username string
 	Password string
 	CreatedAt time.Time

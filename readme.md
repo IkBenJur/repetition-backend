@@ -7,3 +7,11 @@ Run migration: go run migrate/main.go up/down
 
 ## Test
 Run test: go test -v ./... 
+
+## Building
+sudo docker build --tag TAG_NAME .
+
+## Running container
+sudo docker run \
+    -e DB_CONN_URL=URL
+    -e JWT_SECRET=JWT_STRING

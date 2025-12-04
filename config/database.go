@@ -18,7 +18,7 @@ func InitConfig() Config {
 	godotenv.Load()
 	
 	return Config {
-		DbConnectionUrl: getEnv("DB_CONN_URL", ""),
+		DbConnectionUrl: getEnv("DATABASE_URL", ""),
 		JWTSecret: getEnv("JWT_SECRET", "a-string-secret-at-least-256-bits-long"),
 	}
 }

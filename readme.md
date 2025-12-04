@@ -13,5 +13,5 @@ sudo docker build --tag TAG_NAME .
 
 ## Running container
 sudo docker run \
-    -e DB_CONN_URL=URL
+    -e DATABASE_URL=URL
     -e JWT_SECRET=JWT_STRING

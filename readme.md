@@ -15,3 +15,7 @@ sudo docker build --tag TAG_NAME .
 sudo docker run \
     -e DATABASE_URL=URL
     -e JWT_SECRET=JWT_STRING
+
+### Running container local
+When using Linux add host to run command: --add-host=host.docker.internal:host-gateway 
+Use: postgres://username:password@host.docker.internal:5432/database

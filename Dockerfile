@@ -19,7 +19,7 @@ RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate
 COPY . ./
 
 # Create binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o /repetition-backend
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./repetition-backend
 
 # Copy bash running script
 COPY run_server.sh ./

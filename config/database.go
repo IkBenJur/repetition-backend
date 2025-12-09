@@ -12,6 +12,7 @@ import (
 type Config struct {
 	DbConnectionUrl string
 	JWTSecret string
+	FrontEndUrl string
 }
 
 func InitConfig() Config {
@@ -20,6 +21,7 @@ func InitConfig() Config {
 	return Config {
 		DbConnectionUrl: getEnv("DATABASE_URL", ""),
 		JWTSecret: getEnv("JWT_SECRET", "a-string-secret-at-least-256-bits-long"),
+		FrontEndUrl: getEnv("FRONTEND_URL", "http://localhost:5173"),
 	}
 }
 

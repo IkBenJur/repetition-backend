@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	"github.com/IkBenJur/repetition-backend/config"
 	userWorkoutExercise "github.com/IkBenJur/repetition-backend/service/UserWorkoutExercise"
@@ -10,6 +11,7 @@ import (
 	"github.com/IkBenJur/repetition-backend/service/exercise"
 	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,6 +29,15 @@ func NewServer(address string, db *sql.DB) *Server {
 
 func (server *Server) Run() {
 	router := gin.Default()
+	
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{config.Envs.FrontEndUrl},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	userController := user.NewController(server.db)
 	userHandler := user.NewHandler(userController)

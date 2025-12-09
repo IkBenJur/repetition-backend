@@ -2,7 +2,9 @@ package user
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/IkBenJur/repetition-backend/config"
 	"github.com/IkBenJur/repetition-backend/service/auth"
@@ -14,10 +16,18 @@ import (
 
 type Handler struct {
 	controller types.UserController
+	logger     *slog.Logger
 }
 
 func NewHandler(controller types.UserController) *Handler {
-	return &Handler{ controller: controller }
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	return &Handler{
+		controller: controller,
+		logger:     logger,
+	}
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
@@ -26,10 +36,16 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 }
 
 func (handler *Handler) handleLogin(c *gin.Context) {
+	clientIP := c.ClientIP()
+
 	var loginUser types.LoginUserPayload
 
 	// Parse JSON
 	if err := c.ShouldBindJSON(&loginUser); err != nil {
+		handler.logger.Warn("Login attempt with invalid JSON",
+			"ip", clientIP,
+			"error", err.Error(),
+		)
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
         return
     }
@@ -37,26 +53,59 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 	// Validate struct
 	if err := utils.Validate.Struct(loginUser); err != nil {
 		errors := err.(validator.ValidationErrors)
+		handler.logger.Warn("Login attempt with invalid payload",
+			"ip", clientIP,
+			"username", loginUser.Username,
+			"validation_errors", errors.Error(),
+		)
         c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
 		return
 	}
+	
+	handler.logger.Info("Login attempt",
+		"username", loginUser.Username,
+		"ip", clientIP,
+	)
 
 	user, err := handler.controller.GetUserByUsername(loginUser.Username)
 	if err != nil {
+		handler.logger.Warn("Login failed - user not found",
+			"username", loginUser.Username,
+			"ip", clientIP,
+			"error", err.Error(),
+		)
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
 		return
 	}
 
 	if !auth.ComparePassword(user.Password, loginUser.Password) {
+		handler.logger.Warn("Login failed - invalid password",
+			"username", loginUser.Username,
+			"user_id", user.ID,
+			"ip", clientIP,
+		)
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
 		return
 	}
 	
 	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID)
 	if err != nil {
+		handler.logger.Error("Failed to create JWT token",
+			"username", loginUser.Username,
+			"user_id", user.ID,
+			"ip", clientIP,
+			"error", err.Error(),
+		)
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
 		return
 	}
+	
+	handler.logger.Info("Login successful",
+		"username", loginUser.Username,
+		"user_id", user.ID,
+		"ip", clientIP,
+	)
+
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 

@@ -82,7 +82,7 @@ func (controller *Controller) FindUserIdForUserworkoutId(id int) (int, error) {
 
 func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWorkout, error) {
 	var userWorkout *types.UserWorkout
-    exerciseMap := map[int]*types.UserWorkoutExercise{}
+	exerciseMap := map[int]*types.UserWorkoutExercise{}
 
 	rows, err := controller.db.Query(`SELECT
 										uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
@@ -105,8 +105,8 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 
 	for rows.Next() {
 		var (
-			uw types.UserWorkout
-			uwe types.UserWorkoutExercise
+			uw   types.UserWorkout
+			uwe  types.UserWorkoutExercise
 			uwes types.UserWorkoutExerciseSet
 		)
 
@@ -120,9 +120,9 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 		}
 
 		if userWorkout == nil {
-			
+
 			//Initialize an empty array
-			uw.UserWorkoutExercises = make([]types.UserWorkoutExercise, 0)
+			uw.UserWorkoutExercises = make([]*types.UserWorkoutExercise, 0)
 
 			userWorkout = &uw
 		}
@@ -132,21 +132,21 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 			// Check whether exercise had already been added or not
 			// If not add it to the map and workout
 			if _, ok := exerciseMap[uwe.ID]; !ok {
-				
+
 				// Initialize an empty array
-				uwe.UserWorkoutExerciseSets = make([]types.UserWorkoutExerciseSet, 0)
+				uwe.UserWorkoutExerciseSets = make([]*types.UserWorkoutExerciseSet, 0)
 
 				exerciseMap[uwe.ID] = &uwe
-				userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, uwe)
+				userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, &uwe)
 
 			}
 		}
 
-		uwesIsNotNull := uwes.ID != 0 
+		uwesIsNotNull := uwes.ID != 0
 		if uwesIsNotNull {
 			// Add the set to the existing exercise
 			parent := exerciseMap[uwe.ID]
-			parent.UserWorkoutExerciseSets = append(parent.UserWorkoutExerciseSets, uwes)
+			parent.UserWorkoutExerciseSets = append(parent.UserWorkoutExerciseSets, &uwes)
 		}
 	}
 
@@ -157,4 +157,3 @@ func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 	_, err := controller.db.Exec("UPDATE userworkout SET dateend = $1 WHERE id = $2", time.Now(), id)
 	return err
 }
-

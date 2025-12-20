@@ -7,7 +7,7 @@ import (
 type UserController interface {
 	GetUserByUsername(username string) (*User, error)
 	CreateNewUser(user User) error
-	UpdateUser(user User) error 
+	UpdateUser(user User) error
 	GetUserById(id int) (*User, error)
 	UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error
 }
@@ -29,69 +29,69 @@ type LoginUserPayload struct {
 }
 
 type User struct {
-	ID int
+	ID                  int
 	ActiveUserWorkoutId *int
-	Username string
-	Password string
-	CreatedAt time.Time
+	Username            string
+	Password            string
+	CreatedAt           time.Time
 }
 
 type NewExercisePayload struct {
-	Name string `json:"name" validate:"required"`
+	Name        string `json:"name" validate:"required"`
 	MuscleGroup string `json:"muscleGroup" validate:"required"`
 }
 
 type Exercise struct {
-	ID int
-	Name string
+	ID          int
+	Name        string
 	MuscleGroup string
-	CreatedAt time.Time
+	CreatedAt   time.Time
 }
 
 type UserWorkout struct {
-	ID int
-	UserId int
-	Name string
+	ID        int
+	UserId    int
+	Name      string
 	DateStart time.Time
-	DateEnd *time.Time
+	DateEnd   *time.Time
 	CreatedAt time.Time
 
 	// Joined fields
-	UserWorkoutExercises []UserWorkoutExercise
+	UserWorkoutExercises []*UserWorkoutExercise
 }
 
 type UserWorkoutExercise struct {
-	ID int
+	ID            int
 	UserWorkoutId int
-	ExerciseId int
-	CreatedAt time.Time
+	ExerciseId    int
+	CreatedAt     time.Time
 
 	// Joined fields
-	UserWorkoutExerciseSets []UserWorkoutExerciseSet
+	UserWorkoutExerciseSets []*UserWorkoutExerciseSet
 }
 
 type UserWorkoutExerciseSet struct {
-	ID int
+	ID                    int
 	UserWorkoutExerciseId int
-	Reps int
-	Weight float32
-	CreatedAt time.Time
+	Reps                  int
+	Weight                float32
+	CreatedAt             time.Time
 }
 
 type UserWorkoutExercisePayload struct {
-	ExerciseId int `json:"exerciseId" validate:"required"`
-	UserWorkoutId int `json:"userWorkoutId" validate:"required"`
+	ExerciseId              int                             `json:"exerciseId" validate:"required"`
+	UserWorkoutId           int                             `json:"userWorkoutId" validate:"required"`
 	UserWorkoutExerciseSets []UserWorkoutExerciseSetPayload `json:"userWorkoutExerciseSets"`
 }
 
 type UserWorkoutExerciseSetPayload struct {
-	UserWorkoutExerciseId int `json:"userWorkoutExerciseId" validate:"required"`
-	Reps int `json:"reps" validate:"required"`
-	Weight float32 `json:"weight" validate:"required"`
+	UserWorkoutExerciseId int     `json:"userWorkoutExerciseId" validate:"required"`
+	Reps                  int     `json:"reps" validate:"required"`
+	Weight                float32 `json:"weight" validate:"required"`
 }
 
 type NewUserWorkoutPayload struct {
-	Name string `json:"name"`
-	UserId int `json:"userId" validate:"required"`
+	Name                 string                       `json:"name"`
+	UserId               int                          `json:"userId" validate:"required"`
 	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
 }

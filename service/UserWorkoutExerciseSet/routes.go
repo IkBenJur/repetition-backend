@@ -57,7 +57,7 @@ func (handler *Handler) handleCreateNewUserWorkoutExerciseSet(c *gin.Context) {
 	}
 
 	userWorkoutExerciseSet := types.UserWorkoutExerciseSetIntoUserWorkoutExerciseSet(newUserWorkoutExerciseSet)
-	userWorkoutSetId, err := handler.controller.CreateNewUserWorkoutExerciseSet(userWorkoutExerciseSet)
+	userWorkoutSetId, err := handler.controller.CreateNewUserWorkoutExerciseSet(*userWorkoutExerciseSet)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return

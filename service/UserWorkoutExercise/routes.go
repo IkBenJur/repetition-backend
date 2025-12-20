@@ -13,15 +13,15 @@ import (
 )
 
 type Handler struct {
-	controller 				Controller
-	userController 			types.UserController
-	userWorkoutController 	userWorkout.Controller
+	controller            Controller
+	userController        types.UserController
+	userWorkoutController userWorkout.Controller
 }
 
 func NewHandler(controller Controller, userController types.UserController, userWorkoutController userWorkout.Controller) *Handler {
 	return &Handler{
-		controller: 	controller,
-		userController: userController,
+		controller:            controller,
+		userController:        userController,
 		userWorkoutController: userWorkoutController,
 	}
 }
@@ -58,10 +58,13 @@ func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {
 
 	userWorkoutExercise := types.UserWorkoutexerciseIntoUserWorkoutexercise(newUserWorkoutExercise)
 
-	if err := handler.controller.CreateNewUserWorkoutExercise(userWorkoutExercise); err != nil {
+	userWorkoutExerciseId, err := handler.controller.CreateNewUserWorkoutExercise(userWorkoutExercise)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, nil)
+	userWorkoutExercise.ID = userWorkoutExerciseId
+
+	c.JSON(http.StatusCreated, userWorkoutExercise)
 }

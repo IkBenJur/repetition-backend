@@ -14,34 +14,34 @@ func NewController(db *sql.DB) *Controller {
 	return &Controller{db: db}
 }
 
-func (controller *Controller) CreateNewUserWorkoutExercise(workoutExercise types.UserWorkoutExercise) error {
+func (controller *Controller) CreateNewUserWorkoutExercise(workoutExercise types.UserWorkoutExercise) (int, error) {
 	tx, err := controller.db.Begin()
-	
+
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer tx.Rollback()
 
-	var userWorkoutId int64
-	err = tx.QueryRow("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2) RETURNING id", workoutExercise.UserWorkoutId, workoutExercise.ExerciseId).Scan(&userWorkoutId)
+	var userWorkoutExerciseId int
+	err = tx.QueryRow("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2) RETURNING id", workoutExercise.UserWorkoutId, workoutExercise.ExerciseId).Scan(&userWorkoutExerciseId)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3) RETURNING id")
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer exerciseSetStmt.Close()
 
 	for _, set := range workoutExercise.UserWorkoutExerciseSets {
-		_, err := exerciseSetStmt.Exec(workoutExercise.ExerciseId, set.Reps, set.Weight)
+		_, err := exerciseSetStmt.Exec(userWorkoutExerciseId, set.Reps, set.Weight)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return tx.Commit()
+	return userWorkoutExerciseId, tx.Commit()
 }
 
 func (controller *Controller) FindUserIdForUserWorkoutExerciseId(id int) (int, error) {

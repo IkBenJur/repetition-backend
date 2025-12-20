@@ -46,9 +46,9 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 			"ip", clientIP,
 			"error", err.Error(),
 		)
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-        return
-    }
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
 
 	// Validate struct
 	if err := utils.Validate.Struct(loginUser); err != nil {
@@ -58,10 +58,10 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 			"username", loginUser.Username,
 			"validation_errors", errors.Error(),
 		)
-        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
 		return
 	}
-	
+
 	handler.logger.Info("Login attempt",
 		"username", loginUser.Username,
 		"ip", clientIP,
@@ -74,7 +74,7 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 			"ip", clientIP,
 			"error", err.Error(),
 		)
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
 		return
 	}
 
@@ -84,10 +84,10 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 			"user_id", user.ID,
 			"ip", clientIP,
 		)
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
 		return
 	}
-	
+
 	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID)
 	if err != nil {
 		handler.logger.Error("Failed to create JWT token",
@@ -96,10 +96,10 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 			"ip", clientIP,
 			"error", err.Error(),
 		)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
 		return
 	}
-	
+
 	handler.logger.Info("Login successful",
 		"username", loginUser.Username,
 		"user_id", user.ID,
@@ -114,31 +114,31 @@ func (handler *Handler) handleRegister(c *gin.Context) {
 
 	// Parse JSON
 	if err := c.ShouldBindJSON(&newUser); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-        return
-    }
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
 
 	// Validate struct
 	if err := utils.Validate.Struct(newUser); err != nil {
 		errors := err.(validator.ValidationErrors)
-        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
 		return
 	}
-	
+
 	// Check if user exists
 	_, err := handler.controller.GetUserByUsername(newUser.Username)
 	if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "User with username already exists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User with username already exists"})
 		return
 	}
-	
+
 	// Hash
 	hashedPassword, err := auth.HashPassword(newUser.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
-	
+
 	// Create new user
 	err = handler.controller.CreateNewUser(types.User{
 		Username: newUser.Username,

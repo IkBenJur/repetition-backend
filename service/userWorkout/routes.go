@@ -50,8 +50,8 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	userWorkout := types.UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
-	
-	newWorkoutId, err := handler.controller.CreateNewUserWorkout(userWorkout) 
+
+	newWorkoutId, err := handler.controller.CreateNewUserWorkout(userWorkout)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return
@@ -75,7 +75,7 @@ func (handler *Handler) handleFindActiveUserWorkout(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusFound, userWorkout)
+	c.JSON(http.StatusOK, userWorkout)
 }
 
 func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
@@ -84,15 +84,15 @@ func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
 	}
-	
-	workoutUserId, err := handler.controller.FindUserIdForUserworkoutId(id);
+
+	workoutUserId, err := handler.controller.FindUserIdForUserworkoutId(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
 		return
-	} 
+	}
 
 	if workoutUserId != userId {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid"})

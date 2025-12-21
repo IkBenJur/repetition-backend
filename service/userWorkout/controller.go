@@ -86,13 +86,15 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 
 	rows, err := controller.db.Query(`SELECT
 										uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
-										uwe.id, uwe.userworkoutid, uwe.exerciseid, uwe.createdat,
+										uwe.id, uwe.userworkoutid, uwe.exerciseid, exer.name, uwe.createdat,
 										uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.createdat
 									FROM userworkout uw
 									LEFT JOIN userworkoutexercise uwe
 										ON uw.id = uwe.userworkoutid
 									LEFT JOIN userworkoutexerciseset uwes
 										ON uwe.id = uwes.userworkoutexerciseid
+									LEFT JOIN exercise exer
+										ON exer.id = uwe.exerciseid
 									WHERE uw.id = (
 										SELECT active_userworkout_id
 										FROM users
@@ -112,7 +114,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 
 		err := rows.Scan(
 			&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
-			&uwe.ID, &uwe.UserWorkoutId, &uwe.ExerciseId, &uwe.CreatedAt,
+			&uwe.ID, &uwe.UserWorkoutId, &uwe.ExerciseId, &uwe.ExerciseName, &uwe.CreatedAt,
 			&uwes.ID, &uwes.UserWorkoutExerciseId, &uwes.Reps, &uwes.Weight, &uwes.CreatedAt,
 		)
 		if err != nil {

@@ -68,6 +68,7 @@ type UserWorkoutExercise struct {
 
 	// Joined fields
 	UserWorkoutExerciseSets []*UserWorkoutExerciseSet
+	ExerciseName            *string
 }
 
 type UserWorkoutExerciseSet struct {
@@ -80,6 +81,7 @@ type UserWorkoutExerciseSet struct {
 
 type UserWorkoutExercisePayload struct {
 	ExerciseId              int                             `json:"exerciseId" validate:"required"`
+	ExerciseName            *string                         `json:"exerciseName"`
 	UserWorkoutId           int                             `json:"userWorkoutId" validate:"required"`
 	UserWorkoutExerciseSets []UserWorkoutExerciseSetPayload `json:"userWorkoutExerciseSets"`
 }

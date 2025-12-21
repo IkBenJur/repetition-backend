@@ -16,7 +16,7 @@ type Handler struct {
 }
 
 func NewHandler(c types.ExerciseController) *Handler {
-	return &Handler{ c: c}
+	return &Handler{c: c}
 }
 
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
@@ -28,11 +28,11 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 func (h *Handler) handleAllExercise(c *gin.Context) {
 	exercises, err := h.c.GetAllExercise()
 	if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"exercises": exercises})
+	c.JSON(http.StatusOK, exercises)
 }
 
 func (h *Handler) handleNewExercise(c *gin.Context) {
@@ -40,26 +40,26 @@ func (h *Handler) handleNewExercise(c *gin.Context) {
 
 	// Parse JSON
 	if err := c.ShouldBindJSON(&newExercise); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-        return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
 	}
 
 	// Validate struct
 	if err := utils.Validate.Struct(newExercise); err != nil {
 		errors := err.(validator.ValidationErrors)
-        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
 		return
 	}
 
-	err := h.c.SaveExercise(types.Exercise{ 
-		Name: newExercise.Name,
+	err := h.c.SaveExercise(types.Exercise{
+		Name:        newExercise.Name,
 		MuscleGroup: newExercise.MuscleGroup,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise"})
 		return
 	}
-	
+
 	c.JSON(http.StatusCreated, nil)
 }
 
@@ -68,15 +68,15 @@ func (h *Handler) handleGetExerciseById(c *gin.Context) {
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
 	}
 
 	exercise, err := h.c.GetExerciseById(id)
 	if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"exercise": exercise})
+	c.JSON(http.StatusOK, exercise)
 }

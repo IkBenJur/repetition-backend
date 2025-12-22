@@ -11,3 +11,4 @@ go.work
 # Environment specific configurations
 .env
 __debug_bin*
+repetition-backend

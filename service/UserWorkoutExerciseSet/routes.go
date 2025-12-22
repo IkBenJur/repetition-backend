@@ -27,44 +27,74 @@ func NewHandler(controller Controller, userController types.UserController, user
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/userWorkoutExerciseSet", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkoutExerciseSet)
+	router.POST("/userWorkoutExerciseSet", auth.WithJWTAuth(handler.userController), handler.handleCreateOrUpdateUserWorkoutExerciseSet)
+	router.PUT("/userWorkoutExerciseSet/:id", auth.WithJWTAuth(handler.userController), handler.handleCreateOrUpdateUserWorkoutExerciseSet)
 }
 
-func (handler *Handler) handleCreateNewUserWorkoutExerciseSet(c *gin.Context) {
-	var newUserWorkoutExerciseSet types.UserWorkoutExerciseSetPayload
-
-	if err := c.ShouldBindJSON(&newUserWorkoutExerciseSet); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Context) {
+	userId := c.GetInt("userId")
+	if userId == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	if err := utils.Validate.Struct(newUserWorkoutExerciseSet); err != nil {
-		errors := err.(validator.ValidationErrors)
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+	var payload types.UserWorkoutExerciseSetPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
 		return
 	}
 
-	// Check if user is allowed to add the set to exercise
-	workoutUserId, err := handler.userWorkoutExerciseController.FindUserIdForUserWorkoutExerciseId(newUserWorkoutExerciseSet.UserWorkoutExerciseId)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+	if err := utils.Validate.Struct(payload); err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Validation failed: %v", validationErrors)})
 		return
 	}
 
-	if workoutUserId != c.GetInt("userId") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
+	userWorkoutExerciseSet := payload.ToEntity()
+
+	// Check if should update or create
+	if payload.IsUpdate() {
+		// UPDATE existing set
+
+		// Additional authorization check: verify user owns the set being updated
+		existingSetUserId, err := handler.controller.FindUserIdForSetId(*userWorkoutExerciseSet)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Set not found"})
+			return
+		}
+
+		if existingSetUserId != userId {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to update this set"})
+			return
+		}
+
+		if err := handler.controller.UpdateUserWorkoutExerciseSet(*userWorkoutExerciseSet); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update set"})
+			return
+		}
+
+		c.JSON(http.StatusOK, userWorkoutExerciseSet)
+	} else {
+		// CREATE new set
+		workoutUserId, err := handler.userWorkoutExerciseController.FindUserIdForUserWorkoutExerciseId(payload.UserWorkoutExerciseId)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Workout exercise not found"})
+			return
+		}
+
+		// Validate user own workout
+		if workoutUserId != userId {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to modify this workout"})
+			return
+		}
+
+		userWorkoutSetId, err := handler.controller.CreateNewUserWorkoutExerciseSet(*userWorkoutExerciseSet)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create set"})
+			return
+		}
+
+		userWorkoutExerciseSet.ID = userWorkoutSetId
+		c.JSON(http.StatusCreated, userWorkoutExerciseSet)
 	}
-
-	userWorkoutExerciseSet := types.UserWorkoutExerciseSetIntoUserWorkoutExerciseSet(newUserWorkoutExerciseSet)
-	userWorkoutSetId, err := handler.controller.CreateNewUserWorkoutExerciseSet(*userWorkoutExerciseSet)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
-		return
-	}
-
-	// Set the new ID
-	userWorkoutExerciseSet.ID = userWorkoutSetId
-
-	c.JSON(http.StatusCreated, userWorkoutExerciseSet)
 }

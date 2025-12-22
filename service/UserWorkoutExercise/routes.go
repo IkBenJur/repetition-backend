@@ -56,7 +56,7 @@ func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {
 		return
 	}
 
-	userWorkoutExercise := types.UserWorkoutexerciseIntoUserWorkoutexercise(newUserWorkoutExercise)
+	userWorkoutExercise := types.UserWorkoutExercisePayloadIntoUserWorkoutExercise(newUserWorkoutExercise)
 
 	userWorkoutExerciseId, err := handler.controller.CreateNewUserWorkoutExercise(*userWorkoutExercise)
 	if err != nil {

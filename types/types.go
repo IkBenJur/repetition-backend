@@ -87,9 +87,28 @@ type UserWorkoutExercisePayload struct {
 }
 
 type UserWorkoutExerciseSetPayload struct {
+	ID                    *int    `json:"id"`
 	UserWorkoutExerciseId int     `json:"userWorkoutExerciseId" validate:"required"`
 	Reps                  int     `json:"reps" validate:"required"`
 	Weight                float32 `json:"weight" validate:"required"`
+}
+
+func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet {
+	id := 0
+	if payload.ID != nil {
+		id = *payload.ID
+	}
+
+	return &UserWorkoutExerciseSet{
+		ID:                    id,
+		UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
+		Reps:                  payload.Reps,
+		Weight:                payload.Weight,
+	}
+}
+
+func (payload UserWorkoutExerciseSetPayload) IsUpdate() bool {
+	return payload.ID != nil && *payload.ID > 0
 }
 
 type NewUserWorkoutPayload struct {

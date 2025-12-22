@@ -3,7 +3,7 @@ package types
 func UserWorkoutPayloadIntoUserWorkout(payload NewUserWorkoutPayload) UserWorkout {
 	exercises := make([]*UserWorkoutExercise, len(payload.UserWorkoutExercises))
 	for i, exercise := range payload.UserWorkoutExercises {
-		exercises[i] = UserWorkoutexerciseIntoUserWorkoutexercise(exercise)
+		exercises[i] = UserWorkoutExercisePayloadIntoUserWorkoutExercise(exercise)
 	}
 
 	return UserWorkout{
@@ -13,10 +13,10 @@ func UserWorkoutPayloadIntoUserWorkout(payload NewUserWorkoutPayload) UserWorkou
 	}
 }
 
-func UserWorkoutexerciseIntoUserWorkoutexercise(payload UserWorkoutExercisePayload) *UserWorkoutExercise {
+func UserWorkoutExercisePayloadIntoUserWorkoutExercise(payload UserWorkoutExercisePayload) *UserWorkoutExercise {
 	sets := make([]*UserWorkoutExerciseSet, len(payload.UserWorkoutExerciseSets))
 	for i, set := range payload.UserWorkoutExerciseSets {
-		sets[i] = UserWorkoutExerciseSetIntoUserWorkoutExerciseSet(set)
+		sets[i] = set.ToEntity()
 	}
 
 	return &UserWorkoutExercise{
@@ -24,13 +24,5 @@ func UserWorkoutexerciseIntoUserWorkoutexercise(payload UserWorkoutExercisePaylo
 		ExerciseId:              payload.ExerciseId,
 		ExerciseName:            payload.ExerciseName,
 		UserWorkoutId:           payload.UserWorkoutId,
-	}
-}
-
-func UserWorkoutExerciseSetIntoUserWorkoutExerciseSet(payload UserWorkoutExerciseSetPayload) *UserWorkoutExerciseSet {
-	return &UserWorkoutExerciseSet{
-		UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
-		Reps:                  payload.Reps,
-		Weight:                payload.Weight,
 	}
 }

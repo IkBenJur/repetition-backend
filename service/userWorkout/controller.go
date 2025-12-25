@@ -28,7 +28,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 		return -1, err
 	}
 
-	exerciseStmt, err := tx.Prepare("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2) RETURNING id")
+	exerciseStmt, err := tx.Prepare("INSERT INTO userworkoutexercise (userworkoutid, exerciseid, exercise_number) VALUES ($1, $2, $3) RETURNING id")
 	if err != nil {
 		return -1, err
 	}
@@ -42,7 +42,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 
 	for _, exercise := range workout.UserWorkoutExercises {
 		var exerciseId int
-		err = exerciseStmt.QueryRow(workoutId, exercise.ExerciseId).Scan(&exerciseId)
+		err = exerciseStmt.QueryRow(workoutId, exercise.ExerciseId, exercise.ExerciseNumber).Scan(&exerciseId)
 		if err != nil {
 			return -1, err
 		}
@@ -99,7 +99,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 										SELECT active_userworkout_id
 										FROM users
 										WHERE id = $1
-									) ORDER BY uwes.set_number
+									) ORDER BY uwe.exercise_number, uwes.set_number
 	`, id)
 	if err != nil {
 		return nil, err

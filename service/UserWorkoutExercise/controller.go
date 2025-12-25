@@ -23,7 +23,7 @@ func (controller *Controller) CreateNewUserWorkoutExercise(workoutExercise types
 	defer tx.Rollback()
 
 	var userWorkoutExerciseId int
-	err = tx.QueryRow("INSERT INTO userworkoutexercise (userworkoutid, exerciseid) VALUES ($1, $2) RETURNING id", workoutExercise.UserWorkoutId, workoutExercise.ExerciseId).Scan(&userWorkoutExerciseId)
+	err = tx.QueryRow("INSERT INTO userworkoutexercise (userworkoutid, exerciseid, exercise_number) VALUES ($1, $2, $3) RETURNING id", workoutExercise.UserWorkoutId, workoutExercise.ExerciseId, workoutExercise.ExerciseNumber).Scan(&userWorkoutExerciseId)
 	if err != nil {
 		return 0, err
 	}
@@ -42,6 +42,24 @@ func (controller *Controller) CreateNewUserWorkoutExercise(workoutExercise types
 	}
 
 	return userWorkoutExerciseId, tx.Commit()
+}
+
+func (controller *Controller) DetermineExerciseNumberForNewUserWorkoutExercise(userWorkoutId int) (int, error) {
+	var exerciseNumber int
+
+	// When no exercise number is found return 0.
+	err := controller.db.QueryRow(
+		`SELECT COALESCE(MAX(exercise_number), 0)
+			 FROM userworkoutexercise
+			 WHERE userWorkoutId = $1`,
+		userWorkoutId,
+	).Scan(&exerciseNumber)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return exerciseNumber + 1, err
 }
 
 func (controller *Controller) FindUserIdForUserWorkoutExerciseId(id int) (int, error) {

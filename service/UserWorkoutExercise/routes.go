@@ -56,7 +56,15 @@ func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {
 		return
 	}
 
-	userWorkoutExercise := types.UserWorkoutExercisePayloadIntoUserWorkoutExercise(newUserWorkoutExercise)
+	userWorkoutExercise := newUserWorkoutExercise.ToEntity()
+
+	exerciseNumber, err := handler.controller.DetermineExerciseNumberForNewUserWorkoutExercise(userWorkoutExercise.UserWorkoutId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to determine exercise number"})
+		return
+	}
+
+	userWorkoutExercise.ExerciseNumber = &exerciseNumber
 
 	userWorkoutExerciseId, err := handler.controller.CreateNewUserWorkoutExercise(*userWorkoutExercise)
 	if err != nil {

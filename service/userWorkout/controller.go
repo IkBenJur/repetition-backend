@@ -40,19 +40,35 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 	}
 	defer exerciseSetStmt.Close()
 
+	exerciseNumber := 1
 	for _, exercise := range workout.UserWorkoutExercises {
 		var exerciseId int
+
+		// Create new varaible for specific exercise
+		newExerciseNumber := exerciseNumber
+		exercise.ExerciseNumber = &newExerciseNumber
+
 		err = exerciseStmt.QueryRow(workoutId, exercise.ExerciseId, exercise.ExerciseNumber).Scan(&exerciseId)
 		if err != nil {
 			return -1, err
 		}
 
+		setNumber := 1
 		for _, set := range exercise.UserWorkoutExerciseSets {
+
+			// Create new varaible for specific set
+			newSetNumber := setNumber
+			set.SetNumber = &newSetNumber
+
 			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight, set.SetNumber)
 			if err != nil {
 				return -1, err
 			}
+
+			setNumber++
 		}
+
+		exerciseNumber++
 	}
 
 	err = tx.Commit()

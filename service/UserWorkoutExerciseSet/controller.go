@@ -23,7 +23,15 @@ func (controller *Controller) CreateNewUserWorkoutExerciseSet(workoutExerciseSet
 
 func (controller *Controller) DetermineSetNumberForNewUserWorkoutExerciseSet(userWorkoutExerciseId int) (int, error) {
 	var setNumber int
-	err := controller.db.QueryRow("SELECT set_number FROM userworkoutexerciseset WHERE userworkoutexerciseid = $1 ORDER BY set_number DESC LIMIT 1", userWorkoutExerciseId).Scan(&setNumber)
+
+	// When no set number is found return 0.
+	err := controller.db.QueryRow(
+		`SELECT COALESCE(MAX(set_number), 0)
+			 FROM userworkoutexerciseset
+			 WHERE userworkoutexerciseid = $1`,
+		userWorkoutExerciseId,
+	).Scan(&setNumber)
+
 	if err != nil {
 		return 0, err
 	}

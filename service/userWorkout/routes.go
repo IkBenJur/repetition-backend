@@ -111,14 +111,21 @@ func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
 		return
 	}
 
+	// Find the userWorkout again
+	userWorkout, err := handler.controller.FindById(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
 	// Check if active workout for user should also be reset
 	if user.ActiveUserWorkoutId == nil {
-		c.JSON(http.StatusOK, nil)
+		c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": false})
 		return
 	}
 
 	if *user.ActiveUserWorkoutId != id {
-		c.JSON(http.StatusOK, nil)
+		c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": false})
 		return
 	}
 
@@ -130,5 +137,5 @@ func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": true})
 }

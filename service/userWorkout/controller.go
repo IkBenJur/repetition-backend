@@ -2,6 +2,7 @@ package userWorkout
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/IkBenJur/repetition-backend/types"
@@ -97,8 +98,36 @@ func (controller *Controller) FindUserIdForUserworkoutId(id int) (int, error) {
 }
 
 func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWorkout, error) {
+	whereClause := `uw.id = (
+		SELECT active_userworkout_id
+		FROM users
+		WHERE id = $1
+	)`
+	return controller.findWorkout(whereClause, id)
+}
+
+func (controller *Controller) FindById(workoutId int) (*types.UserWorkout, error) {
+	whereClause := `uw.id = $1`
+	return controller.findWorkout(whereClause, workoutId)
+}
+
+func (controller *Controller) findWorkout(whereClause string, id int) (*types.UserWorkout, error) {
 	var userWorkout *types.UserWorkout
 	exerciseMap := map[int]*types.UserWorkoutExercise{}
+
+	fmt.Sprintf(`SELECT
+					uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
+					uwe.id, uwe.userworkoutid, uwe.exerciseid, exer.name, uwe.createdat,
+					uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.set_number, uwes.is_done, uwes.createdat
+				FROM userworkout uw
+				LEFT JOIN userworkoutexercise uwe
+					ON uw.id = uwe.userworkoutid
+				LEFT JOIN userworkoutexerciseset uwes
+					ON uwe.id = uwes.userworkoutexerciseid
+				LEFT JOIN exercise exer
+					ON exer.id = uwe.exerciseid
+				WHERE %s ORDER BY uwe.exercise_number, uwes.set_number
+		`, whereClause)
 
 	rows, err := controller.db.Query(`SELECT
 										uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,

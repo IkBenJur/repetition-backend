@@ -16,11 +16,21 @@ func NewController(db *sql.DB) *Controller {
 
 func (controller *Controller) CreateNewUserWorkoutExerciseSet(workoutExerciseSet types.UserWorkoutExerciseSet) (int, error) {
 	var workoutExerciseSetId int
-	err := controller.db.QueryRow("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3) RETURNING id", workoutExerciseSet.UserWorkoutExerciseId, workoutExerciseSet.Reps, workoutExerciseSet.Weight).Scan(&workoutExerciseSetId)
+	err := controller.db.QueryRow("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number) VALUES ($1, $2, $3, $4) RETURNING id", workoutExerciseSet.UserWorkoutExerciseId, workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.SetNumber).Scan(&workoutExerciseSetId)
 
 	return workoutExerciseSetId, err
 }
-	
+
+func (controller *Controller) DetermineSetNumberForNewUserWorkoutExerciseSet(userWorkoutExerciseId int) (int, error) {
+	var setNumber int
+	err := controller.db.QueryRow("SELECT set_number FROM userworkoutexerciseset WHERE userworkoutexerciseid = $1 ORDER BY set_number DESC LIMIT 1", userWorkoutExerciseId).Scan(&setNumber)
+	if err != nil {
+		return 0, err
+	}
+
+	return setNumber + 1, err
+}
+
 func (controller *Controller) FindUserIdForSetId(workoutExerciseSet types.UserWorkoutExerciseSet) (int, error) {
 	var userId int
 	err := controller.db.QueryRow(`

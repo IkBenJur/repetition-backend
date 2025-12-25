@@ -88,6 +88,15 @@ func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Contex
 			return
 		}
 
+		// Determine the new setNumber
+		setNumber, err := handler.controller.DetermineSetNumberForNewUserWorkoutExerciseSet(userWorkoutExerciseSet.UserWorkoutExerciseId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to determine set number"})
+			return
+		}
+
+		userWorkoutExerciseSet.SetNumber = &setNumber
+
 		userWorkoutSetId, err := handler.controller.CreateNewUserWorkoutExerciseSet(*userWorkoutExerciseSet)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create set"})

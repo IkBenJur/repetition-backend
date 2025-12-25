@@ -34,7 +34,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 	}
 	defer exerciseStmt.Close()
 
-	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3) RETURNING id")
+	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number) VALUES ($1, $2, $3, $4) RETURNING id")
 	if err != nil {
 		return -1, err
 	}
@@ -48,7 +48,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 		}
 
 		for _, set := range exercise.UserWorkoutExerciseSets {
-			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight)
+			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight, set.SetNumber)
 			if err != nil {
 				return -1, err
 			}
@@ -87,7 +87,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 	rows, err := controller.db.Query(`SELECT
 										uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
 										uwe.id, uwe.userworkoutid, uwe.exerciseid, exer.name, uwe.createdat,
-										uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.createdat
+										uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.set_number, uwes.createdat
 									FROM userworkout uw
 									LEFT JOIN userworkoutexercise uwe
 										ON uw.id = uwe.userworkoutid
@@ -99,7 +99,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 										SELECT active_userworkout_id
 										FROM users
 										WHERE id = $1
-									)
+									) ORDER BY uwes.set_number
 	`, id)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 		err := rows.Scan(
 			&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
 			&uwe.ID, &uwe.UserWorkoutId, &uwe.ExerciseId, &uwe.ExerciseName, &uwe.CreatedAt,
-			&uwes.ID, &uwes.UserWorkoutExerciseId, &uwes.Reps, &uwes.Weight, &uwes.CreatedAt,
+			&uwes.ID, &uwes.UserWorkoutExerciseId, &uwes.Reps, &uwes.Weight, &uwes.SetNumber, &uwes.CreatedAt,
 		)
 		if err != nil {
 			return nil, err

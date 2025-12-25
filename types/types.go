@@ -76,6 +76,7 @@ type UserWorkoutExerciseSet struct {
 	UserWorkoutExerciseId int
 	Reps                  *int
 	Weight                *float32
+	SetNumber             *int
 	CreatedAt             time.Time
 }
 
@@ -91,6 +92,7 @@ type UserWorkoutExerciseSetPayload struct {
 	UserWorkoutExerciseId int      `json:"userWorkoutExerciseId" validate:"required"`
 	Reps                  *int     `json:"reps"`
 	Weight                *float32 `json:"weight"`
+	SetNumber             *int     `json:"setNumber"`
 }
 
 func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet {
@@ -104,6 +106,7 @@ func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet 
 		UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
 		Reps:                  payload.Reps,
 		Weight:                payload.Weight,
+		SetNumber:             payload.SetNumber,
 	}
 }
 

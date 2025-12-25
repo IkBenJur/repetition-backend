@@ -103,7 +103,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 	rows, err := controller.db.Query(`SELECT
 										uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
 										uwe.id, uwe.userworkoutid, uwe.exerciseid, exer.name, uwe.createdat,
-										uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.set_number, uwes.createdat
+										uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.set_number, uwes.is_done, uwes.createdat
 									FROM userworkout uw
 									LEFT JOIN userworkoutexercise uwe
 										ON uw.id = uwe.userworkoutid
@@ -140,13 +140,14 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 			uwesReps                  sql.NullInt64
 			uwesWeight                sql.NullFloat64
 			uwesSetNumber             sql.NullInt64
+			uwesIsDone                sql.NullBool
 			uwesCreatedAt             sql.NullTime
 		)
 
 		err := rows.Scan(
 			&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
 			&uweID, &uweUserWorkoutId, &uweExerciseId, &uweExerciseName, &uweCreatedAt,
-			&uwesID, &uwesUserWorkoutExerciseId, &uwesReps, &uwesWeight, &uwesSetNumber, &uwesCreatedAt,
+			&uwesID, &uwesUserWorkoutExerciseId, &uwesReps, &uwesWeight, &uwesSetNumber, &uwesIsDone, &uwesCreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -190,6 +191,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 			reps := int(uwesReps.Int64)
 			weight := uwesWeight.Float64
 			setNumber := int(uwesSetNumber.Int64)
+			IsDone := uwesIsDone.Bool
 
 			uwes := types.UserWorkoutExerciseSet{
 				ID:                    uwesIDInt,
@@ -197,6 +199,7 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 				Reps:                  &reps,
 				Weight:                &weight,
 				SetNumber:             &setNumber,
+				IsDone:                IsDone,
 				CreatedAt:             uwesCreatedAt.Time,
 			}
 

@@ -106,16 +106,31 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 	}
 
 	for rows.Next() {
+		// Using left joins so some fields might be empty
+		// Use sql.Nullable types
 		var (
-			uw   types.UserWorkout
-			uwe  types.UserWorkoutExercise
-			uwes types.UserWorkoutExerciseSet
+			uw types.UserWorkout
+
+			// Nullable fields for userWorkoutExercise
+			uweID            sql.NullInt64
+			uweUserWorkoutId sql.NullInt64
+			uweExerciseId    sql.NullInt64
+			uweExerciseName  sql.NullString
+			uweCreatedAt     sql.NullTime
+
+			// Nullable fields for userWorkoutExerciseSet
+			uwesID                    sql.NullInt64
+			uwesUserWorkoutExerciseId sql.NullInt64
+			uwesReps                  sql.NullInt64
+			uwesWeight                sql.NullFloat64
+			uwesSetNumber             sql.NullInt64
+			uwesCreatedAt             sql.NullTime
 		)
 
 		err := rows.Scan(
 			&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
-			&uwe.ID, &uwe.UserWorkoutId, &uwe.ExerciseId, &uwe.ExerciseName, &uwe.CreatedAt,
-			&uwes.ID, &uwes.UserWorkoutExerciseId, &uwes.Reps, &uwes.Weight, &uwes.SetNumber, &uwes.CreatedAt,
+			&uweID, &uweUserWorkoutId, &uweExerciseId, &uweExerciseName, &uweCreatedAt,
+			&uwesID, &uwesUserWorkoutExerciseId, &uwesReps, &uwesWeight, &uwesSetNumber, &uwesCreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -129,25 +144,48 @@ func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWor
 			userWorkout = &uw
 		}
 
-		uweIsNotNull := uwe.ID != 0
-		if uweIsNotNull {
+		if uweID.Valid {
+			uweIDInt := int(uweID.Int64)
 			// Check whether exercise had already been added or not
 			// If not add it to the map and workout
-			if _, ok := exerciseMap[uwe.ID]; !ok {
+			if _, ok := exerciseMap[uweIDInt]; !ok {
 
-				// Initialize an empty array
-				uwe.UserWorkoutExerciseSets = make([]*types.UserWorkoutExerciseSet, 0)
+				// Construct new exercise
+				uwe := types.UserWorkoutExercise{
+					ID:                      uweIDInt,
+					UserWorkoutId:           int(uweUserWorkoutId.Int64),
+					ExerciseId:              int(uweExerciseId.Int64),
+					ExerciseName:            &uweExerciseName.String,
+					CreatedAt:               uweCreatedAt.Time,
+					UserWorkoutExerciseSets: make([]*types.UserWorkoutExerciseSet, 0),
+				}
 
-				exerciseMap[uwe.ID] = &uwe
+				exerciseMap[uweIDInt] = &uwe
 				userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, &uwe)
 
 			}
 		}
 
-		uwesIsNotNull := uwes.ID != 0
-		if uwesIsNotNull {
+		if uwesID.Valid {
+			uwesIDInt := int(uwesID.Int64)
+			uweIDInt := int(uweID.Int64)
+
+			// Contruct new set object
+			reps := int(uwesReps.Int64)
+			weight := uwesWeight.Float64
+			setNumber := int(uwesSetNumber.Int64)
+
+			uwes := types.UserWorkoutExerciseSet{
+				ID:                    uwesIDInt,
+				UserWorkoutExerciseId: int(uwesUserWorkoutExerciseId.Int64),
+				Reps:                  &reps,
+				Weight:                &weight,
+				SetNumber:             &setNumber,
+				CreatedAt:             uwesCreatedAt.Time,
+			}
+
 			// Add the set to the existing exercise
-			parent := exerciseMap[uwe.ID]
+			parent := exerciseMap[uweIDInt]
 			parent.UserWorkoutExerciseSets = append(parent.UserWorkoutExerciseSets, &uwes)
 		}
 	}

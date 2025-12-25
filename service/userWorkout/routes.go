@@ -28,6 +28,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
 	router.GET("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
 	router.GET("/userWorkout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
+	router.GET("/userWorkout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
 	router.PUT("/userWorkout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
 }
 
@@ -65,6 +66,30 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, nil)
+}
+
+func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
+	userId := c.GetInt("userId")
+	userWorkoutIdParam := c.Param("id")
+
+	userWorkoutId, err := strconv.Atoi(userWorkoutIdParam)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	userWorkout, err := handler.controller.FindById(userWorkoutId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	if userId != userWorkout.UserId {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, userWorkout)
 }
 
 func (handler *Handler) handleGetAllUserWorkouts(c *gin.Context) {

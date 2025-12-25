@@ -11,7 +11,7 @@ type Controller struct {
 }
 
 func NewController(db *sql.DB) *Controller {
-	return &Controller{ db: db }
+	return &Controller{db: db}
 }
 
 func (c *Controller) GetAllExercise() ([]types.Exercise, error) {
@@ -19,6 +19,7 @@ func (c *Controller) GetAllExercise() ([]types.Exercise, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	exercises := make([]types.Exercise, 0)
 
@@ -39,9 +40,10 @@ func (c *Controller) GetExerciseById(id int) (*types.Exercise, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	exercise := new (types.Exercise)
-	
+	exercise := new(types.Exercise)
+
 	for rows.Next() {
 		exercise, err = scanRowIntoExercise(rows)
 		if err != nil {

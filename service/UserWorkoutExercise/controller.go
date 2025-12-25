@@ -67,6 +67,7 @@ func (controller *Controller) FindUserIdForUserWorkoutExerciseId(id int) (int, e
 	if err != nil {
 		return 0, err
 	}
+	defer rows.Close()
 
 	userId := 0
 	for rows.Next() {

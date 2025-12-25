@@ -11,7 +11,7 @@ type Controller struct {
 }
 
 func NewController(db *sql.DB) *Controller {
-	return &Controller{ db: db }
+	return &Controller{db: db}
 }
 
 func (controller *Controller) GetUserByUsername(username string) (*types.User, error) {
@@ -19,6 +19,7 @@ func (controller *Controller) GetUserByUsername(username string) (*types.User, e
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	user := new(types.User)
 
@@ -51,9 +52,10 @@ func (controller *Controller) GetUserById(id int) (*types.User, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	user := new (types.User)
-	
+	user := new(types.User)
+
 	for rows.Next() {
 		user, err = scanRowIntoUser(rows)
 		if err != nil {

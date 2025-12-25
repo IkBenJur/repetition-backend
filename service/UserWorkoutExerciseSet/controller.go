@@ -16,7 +16,7 @@ func NewController(db *sql.DB) *Controller {
 
 func (controller *Controller) CreateNewUserWorkoutExerciseSet(workoutExerciseSet types.UserWorkoutExerciseSet) (int, error) {
 	var workoutExerciseSetId int
-	err := controller.db.QueryRow("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number) VALUES ($1, $2, $3, $4) RETURNING id", workoutExerciseSet.UserWorkoutExerciseId, workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.SetNumber).Scan(&workoutExerciseSetId)
+	err := controller.db.QueryRow("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number, is_done) VALUES ($1, $2, $3, $4, $5) RETURNING id", workoutExerciseSet.UserWorkoutExerciseId, workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.SetNumber, workoutExerciseSet.IsDone).Scan(&workoutExerciseSetId)
 
 	return workoutExerciseSetId, err
 }
@@ -51,6 +51,6 @@ func (controller *Controller) FindUserIdForSetId(workoutExerciseSet types.UserWo
 }
 
 func (controller *Controller) UpdateUserWorkoutExerciseSet(workoutExerciseSet types.UserWorkoutExerciseSet) error {
-	_, err := controller.db.Exec("UPDATE userworkoutexerciseset SET reps = $1, weight = $2 WHERE id = $3", workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.ID)
+	_, err := controller.db.Exec("UPDATE userworkoutexerciseset SET reps = $1, weight = $2, is_done = $4 WHERE id = $3", workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.ID, workoutExerciseSet.IsDone)
 	return err
 }

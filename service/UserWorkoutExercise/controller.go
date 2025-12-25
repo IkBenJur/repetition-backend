@@ -28,14 +28,14 @@ func (controller *Controller) CreateNewUserWorkoutExercise(workoutExercise types
 		return 0, err
 	}
 
-	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight) VALUES ($1, $2, $3) RETURNING id")
+	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, is_done) VALUES ($1, $2, $3, $4) RETURNING id")
 	if err != nil {
 		return 0, err
 	}
 	defer exerciseSetStmt.Close()
 
 	for _, set := range workoutExercise.UserWorkoutExerciseSets {
-		_, err := exerciseSetStmt.Exec(userWorkoutExerciseId, set.Reps, set.Weight)
+		_, err := exerciseSetStmt.Exec(userWorkoutExerciseId, set.Reps, set.Weight, set.IsDone)
 		if err != nil {
 			return 0, err
 		}

@@ -1,0 +1,1 @@
+ALTER TABLE userWorkoutExerciseSet ADD COLUMN is_done BOOLEAN NOT NULL DEFAULT true;

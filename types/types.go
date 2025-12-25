@@ -78,6 +78,7 @@ type UserWorkoutExerciseSet struct {
 	Reps                  *int
 	Weight                *float64
 	SetNumber             *int
+	IsDone                bool
 	CreatedAt             time.Time
 }
 
@@ -110,6 +111,7 @@ type UserWorkoutExerciseSetPayload struct {
 	Reps                  *int     `json:"reps"`
 	Weight                *float64 `json:"weight"`
 	SetNumber             *int     `json:"setNumber"`
+	IsDone                bool     `json:"isDone"`
 }
 
 func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet {
@@ -124,6 +126,7 @@ func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet 
 		Reps:                  payload.Reps,
 		Weight:                payload.Weight,
 		SetNumber:             payload.SetNumber,
+		IsDone:                payload.IsDone,
 	}
 }
 

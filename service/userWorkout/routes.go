@@ -26,6 +26,7 @@ func NewHandler(controller Controller, userController types.UserController) *Han
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	router.GET("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
 	router.GET("/userWorkout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
 	router.PUT("/userWorkout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
 }
@@ -64,6 +65,18 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, nil)
+}
+
+func (handler *Handler) handleGetAllUserWorkouts(c *gin.Context) {
+	userId := c.GetInt("userId")
+
+	userWorkouts, err := handler.controller.FindAllWorkoutsForUserId(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	c.JSON(http.StatusOK, userWorkouts)
 }
 
 func (handler *Handler) handleFindActiveUserWorkout(c *gin.Context) {

@@ -98,6 +98,32 @@ func (controller *Controller) FindUserIdForUserworkoutId(id int) (int, error) {
 	return userId, nil
 }
 
+func (controller *Controller) FindAllWorkoutsForUserId(userId int) ([]*types.UserWorkout, error) {
+	//Initialize an empty array
+	userWorkouts := make([]*types.UserWorkout, 0)
+	rows, err := controller.db.Query(`
+		SELECT id, userId, name, dateStart, dateEnd, createdAt
+		FROM userworkout
+		WHERE userId = $1 ORDER BY id DESC`, userId)
+	if err != nil {
+		return userWorkouts, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userWorkout types.UserWorkout
+
+		err := rows.Scan(&userWorkout.ID, &userWorkout.UserId, &userWorkout.Name, &userWorkout.DateStart, &userWorkout.DateEnd, &userWorkout.CreatedAt)
+		if err != nil {
+			return userWorkouts, err
+		}
+
+		userWorkouts = append(userWorkouts, &userWorkout)
+	}
+
+	return userWorkouts, nil
+}
+
 func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWorkout, error) {
 	whereClause := `uw.id = (
 		SELECT active_userworkout_id

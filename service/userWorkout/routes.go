@@ -46,14 +46,12 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 		return
 	}
 
-	if newUserWorkout.UserId != c.GetInt("userId") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "haha dont even try it"})
-		return
-	}
+	// Set the userId to that of the logged in user
+	newUserWorkout.UserId = c.GetInt("userId")
 
-	userWorkout := types.UserWorkoutPayloadIntoUserWorkout(newUserWorkout)
+	userWorkout := newUserWorkout.ToEntity()
 
-	newWorkoutId, err := handler.controller.CreateNewUserWorkout(userWorkout)
+	newWorkoutId, err := handler.controller.CreateNewUserWorkout(*userWorkout)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return
@@ -65,7 +63,15 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, nil)
+	// Find the new workout from the database
+	userWorkout, err = handler.controller.FindById(newWorkoutId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find new workout"})
+		return
+
+	}
+
+	c.JSON(http.StatusCreated, userWorkout)
 }
 
 func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {

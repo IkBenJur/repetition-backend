@@ -135,7 +135,20 @@ func (payload UserWorkoutExerciseSetPayload) IsUpdate() bool {
 }
 
 type NewUserWorkoutPayload struct {
-	Name                 string                       `json:"name"`
-	UserId               int                          `json:"userId" validate:"required"`
+	Name                 string                       `json:"name" validate:"required"`
+	UserId               int                          `json:"userId"`
 	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
+}
+
+func (payload *NewUserWorkoutPayload) ToEntity() *UserWorkout {
+	exercises := make([]*UserWorkoutExercise, len(payload.UserWorkoutExercises))
+	for i, exercise := range payload.UserWorkoutExercises {
+		exercises[i] = exercise.ToEntity()
+	}
+
+	return &UserWorkout{
+		Name:                 payload.Name,
+		UserId:               payload.UserId,
+		UserWorkoutExercises: exercises,
+	}
 }

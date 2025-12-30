@@ -111,7 +111,7 @@ type UserWorkoutExerciseSetPayload struct {
 	Reps                  *int     `json:"reps"`
 	Weight                *float64 `json:"weight"`
 	SetNumber             *int     `json:"setNumber"`
-	IsDone                bool     `json:"isDone"`
+	IsDone                *bool    `json:"isDone"`
 }
 
 func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet {
@@ -120,13 +120,18 @@ func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet 
 		id = *payload.ID
 	}
 
+	isDone := false
+	if payload.IsDone != nil {
+		isDone = *payload.IsDone
+	}
+
 	return &UserWorkoutExerciseSet{
 		ID:                    id,
 		UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
 		Reps:                  payload.Reps,
 		Weight:                payload.Weight,
 		SetNumber:             payload.SetNumber,
-		IsDone:                payload.IsDone,
+		IsDone:                isDone,
 	}
 }
 

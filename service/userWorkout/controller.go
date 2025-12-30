@@ -35,7 +35,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 	}
 	defer exerciseStmt.Close()
 
-	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number) VALUES ($1, $2, $3, $4) RETURNING id")
+	exerciseSetStmt, err := tx.Prepare("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number, is_done) VALUES ($1, $2, $3, $4, $5) RETURNING id")
 	if err != nil {
 		return -1, err
 	}
@@ -61,7 +61,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 			newSetNumber := setNumber
 			set.SetNumber = &newSetNumber
 
-			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight, set.SetNumber)
+			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight, set.SetNumber, set.IsDone)
 			if err != nil {
 				return -1, err
 			}

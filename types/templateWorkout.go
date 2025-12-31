@@ -4,7 +4,7 @@ import "time"
 
 type TemplateWorkout struct {
 	Id        *int
-	UserId    *int
+	UserId    int
 	Name      string
 	CreatedAt time.Time
 

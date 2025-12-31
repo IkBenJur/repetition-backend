@@ -39,7 +39,12 @@ func (controller *Controller) CreateNewTemplateWorkout(templateWorkout *types.Te
 	}
 
 	// Create new templateWorkout and set the new ID
-	err = workoutTemplateStmt.QueryRow(templateWorkout.Name).Scan(templateWorkout.Id)
+	err = workoutTemplateStmt.
+		QueryRow(
+			templateWorkout.Name,
+			templateWorkout.UserId,
+		).
+		Scan(templateWorkout.Id)
 	if err != nil {
 		return -1, err
 	}
@@ -68,8 +73,8 @@ func (controller *Controller) CreateNewTemplateWorkout(templateWorkout *types.Te
 }
 
 func newWorkoutTemplateStatement(tx *sql.Tx) (*sql.Stmt, error) {
-	return tx.Prepare(`INSERT INTO workout_template (name)
-						VALUES ($1)
+	return tx.Prepare(`INSERT INTO workout_template (name, user_id)
+						VALUES ($1, $2)
 						RERTNING id`)
 }
 

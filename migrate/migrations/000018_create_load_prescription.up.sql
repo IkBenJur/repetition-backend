@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS fixed_load_prescription (
+    id SERIAL PRIMARY KEY,
+    weight DECIMAL(6,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS percentage_one_rep_max_load_prescription (
+    id SERIAL PRIMARY KEY,
+    percentage DECIMAL(5,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS rpe_load_prescription (
+    id SERIAL PRIMARY KEY,
+    rpe DECIMAL(3,1) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

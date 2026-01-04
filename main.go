@@ -17,19 +17,19 @@ import (
 
 type Server struct {
 	Addres string
-	db *sql.DB
+	db     *sql.DB
 }
 
 func NewServer(address string, db *sql.DB) *Server {
 	return &Server{
 		Addres: address,
-		db: db,
+		db:     db,
 	}
 }
 
 func (server *Server) Run() {
 	router := gin.Default()
-	
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{config.Envs.FrontEndUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -66,9 +66,10 @@ func main() {
 	db, err := config.ConnectDatabase(config.Envs)
 	if err != nil {
 		log.Fatalf("Cannot create database %v", err)
+		return
 	}
 
 	server := NewServer(":8080", db)
-	
+
 	server.Run()
 }

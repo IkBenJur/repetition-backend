@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/IkBenJur/repetition-backend/service/auth"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
@@ -12,19 +13,20 @@ import (
 )
 
 type Handler struct {
-	Controller     Controller
-	userController types.UserController
+	Controller Controller
 }
 
-func NewHandler(controller Controller, userController types.UserController) *Handler {
+func NewHandler(controller Controller) *Handler {
 	return &Handler{
-		Controller:     controller,
-		userController: userController,
+		Controller: controller,
 	}
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/workoutTemplate", auth.WithJWTAuth(handler.userController))
+
+	userController := user.NewController(handler.Controller.db)
+
+	router.POST("/workout-template", auth.WithJWTAuth(userController), handler.handleCreateOrUpdateNewWorkout)
 }
 
 // TODO For now only create but will handle update later

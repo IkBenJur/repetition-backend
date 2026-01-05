@@ -11,6 +11,7 @@ import (
 	"github.com/IkBenJur/repetition-backend/service/exercise"
 	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
+	workouttemplate "github.com/IkBenJur/repetition-backend/service/workoutTemplate"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -58,6 +59,10 @@ func (server *Server) Run() {
 	userWorkoutExerciseSetController := userWorkoutExerciseSet.NewController(server.db)
 	userWorkoutExerciseSetHandler := userWorkoutExerciseSet.NewHandler(*userWorkoutExerciseSetController, userController, *userWorkoutExerciseController)
 	userWorkoutExerciseSetHandler.RegisterRoutes(router)
+
+	templateWorkoutController := workouttemplate.NewController(server.db)
+	templateWorkoutHandler := workouttemplate.NewHandler(*templateWorkoutController)
+	templateWorkoutHandler.RegisterRoutes(router)
 
 	router.Run(server.Addres)
 }

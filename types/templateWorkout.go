@@ -3,7 +3,7 @@ package types
 import "time"
 
 type TemplateWorkout struct {
-	Id        *int
+	Id        int
 	UserId    int
 	Name      string
 	CreatedAt time.Time
@@ -23,9 +23,15 @@ type TemplateWorkoutExercise struct {
 }
 
 type TemplateExerciseSet struct {
-	Id         *int
-	RepGoal    int
-	WeightGoal float64
+	Id             int
+	RepGoal        int
+	PrescriptionId int
+
+	// Joined fields
+	LoadPresciptionType                 *LoadPresciptionType
+	FixedLoadPrescription               *FixedLoadPrescription
+	PercentageOneRepMaxLoadPrescription *PercentageOneRepMaxLoadPrescription
+	RPELoadPrescription                 *RPELoadPrescription
 }
 
 type TemplateWorkoutPayload struct {
@@ -42,6 +48,8 @@ func (payload *TemplateWorkoutPayload) ToEntity() *TemplateWorkout {
 
 	return &TemplateWorkout{
 		Name: payload.Name,
+
+		Exercises: exercises,
 	}
 }
 
@@ -64,13 +72,45 @@ func (payload *TemplateWorkoutExercisePayload) ToEntity() *TemplateWorkoutExerci
 }
 
 type TemplateExerciseSetPayload struct {
-	RepGoal    int     `json:"repGoal" validate:"required"`
-	WeightGoal float64 `json:"weightGoal" validate:"required"`
+	RepGoal               int                               `json:"repGoal" validate:"required"`
+	LoadPresciptionTypeId LoadPresciptionType               `json:"loadPrescriptionTypeId" validate:"required"`
+	FixedLoadPrescription *FixedLoadPrescriptionTypePayload `json:"fixedLoadPrescription" validate:"required"`
 }
 
 func (payload *TemplateExerciseSetPayload) ToEntity() *TemplateExerciseSet {
 	return &TemplateExerciseSet{
-		RepGoal:    payload.RepGoal,
-		WeightGoal: payload.WeightGoal,
+		RepGoal:             payload.RepGoal,
+		LoadPresciptionType: &payload.LoadPresciptionTypeId,
+
+		// Fields may be nill
+		FixedLoadPrescription: payload.FixedLoadPrescription.ToEntity(),
+	}
+}
+
+type FixedLoadPrescriptionTypePayload struct {
+	Weight float64 `json:"weight"`
+}
+
+func (payload *FixedLoadPrescriptionTypePayload) ToEntity() *FixedLoadPrescription {
+	if payload == nil {
+		return nil
+	}
+
+	return &FixedLoadPrescription{
+		Weight: payload.Weight,
+	}
+}
+
+type PercentageOneRepMaxLoadPrescriptionPayload struct {
+	Percentage float64
+}
+
+func (payload *PercentageOneRepMaxLoadPrescriptionPayload) ToEntity() *PercentageOneRepMaxLoadPrescription {
+	if payload == nil {
+		return nil
+	}
+
+	return &PercentageOneRepMaxLoadPrescription{
+		Percentage: payload.Percentage,
 	}
 }

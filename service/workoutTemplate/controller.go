@@ -2,7 +2,6 @@ package workouttemplate
 
 import (
 	"database/sql"
-	"fmt"
 
 	loadprescription "github.com/IkBenJur/repetition-backend/service/loadPrescription"
 	"github.com/IkBenJur/repetition-backend/types"
@@ -53,6 +52,16 @@ func (controller *Controller) CreateNewTemplateWorkout(templateWorkout *types.Te
 		return -1, err
 	}
 
+	percentageMaxLoadPrescriptionStmt, err := loadPrescriptionController.CreatePercentageOneRepMaxLoadPrescriptionStatement(tx)
+	if err != nil {
+		return -1, err
+	}
+
+	rpeLoadPrescriptionStmt, err := loadPrescriptionController.CreateRPELoadPrescriptionStatement(tx)
+	if err != nil {
+		return -1, err
+	}
+
 	// Create new templateWorkout and set the new ID
 	err = workoutTemplateStmt.
 		QueryRow(
@@ -80,33 +89,22 @@ func (controller *Controller) CreateNewTemplateWorkout(templateWorkout *types.Te
 
 		for j, templateSet := range templateExercise.TemplateSets {
 
-			if !loadPrescriptionController.IsValidLoadPrescriptionType(templateSet.LoadPresciptionType) {
-				return -1, fmt.Errorf("Invalid load type ID found: %v", templateSet.LoadPresciptionType)
-			}
-
-			// Create new loadPrescription for set
-			err := loadPrescriptionStmt.
-				QueryRow(templateSet.LoadPresciptionType).
-				Scan(&templateSet.PrescriptionId)
+			// Create load prescription for workout set
+			loadPrescriptionId, err := loadPrescriptionController.CreateLoadPrescriptionForWorkoutSet(
+				templateSet,
+				loadPrescriptionStmt,
+				fixLoadPrescriptionStmt,
+				percentageMaxLoadPrescriptionStmt,
+				rpeLoadPrescriptionStmt,
+			)
 			if err != nil {
 				return -1, err
 			}
 
-			// Add to correct specified table
-			if *templateSet.LoadPresciptionType == types.FIXED {
+			// Update prescription id
+			templateSet.PrescriptionId = loadPrescriptionId
 
-				templateSet.FixedLoadPrescription.Id = &templateSet.PrescriptionId
-
-				_, err := fixLoadPrescriptionStmt.
-					Exec(
-						templateSet.PrescriptionId,
-						templateSet.FixedLoadPrescription.Weight,
-					)
-				if err != nil {
-					return -1, err
-				}
-			} // TODO Same if statements for OneRepMax and RPE types
-
+			// Create new template set
 			err = templateSetStmt.
 				QueryRow(
 					templateSet.RepGoal,

@@ -72,9 +72,11 @@ func (payload *TemplateWorkoutExercisePayload) ToEntity() *TemplateWorkoutExerci
 }
 
 type TemplateExerciseSetPayload struct {
-	RepGoal               int                               `json:"repGoal" validate:"required"`
-	LoadPresciptionTypeId LoadPresciptionType               `json:"loadPrescriptionTypeId" validate:"required"`
-	FixedLoadPrescription *FixedLoadPrescriptionTypePayload `json:"fixedLoadPrescription" validate:"required"`
+	RepGoal                       int                                         `json:"repGoal" validate:"required"`
+	LoadPresciptionTypeId         LoadPresciptionType                         `json:"loadPrescriptionTypeId" validate:"required"`
+	FixedLoadPrescription         *FixedLoadPrescriptionTypePayload           `json:"fixedLoadPrescription"`
+	PercentageMaxLoadPrescription *PercentageOneRepMaxLoadPrescriptionPayload `json:"percentageMaxLoadPrescription"`
+	RpeLoadPrescription           *RpeLoadPrescriptionPayload                 `json:"rpeLoadPrescription"`
 }
 
 func (payload *TemplateExerciseSetPayload) ToEntity() *TemplateExerciseSet {
@@ -83,7 +85,9 @@ func (payload *TemplateExerciseSetPayload) ToEntity() *TemplateExerciseSet {
 		LoadPresciptionType: &payload.LoadPresciptionTypeId,
 
 		// Fields may be nill
-		FixedLoadPrescription: payload.FixedLoadPrescription.ToEntity(),
+		FixedLoadPrescription:               payload.FixedLoadPrescription.ToEntity(),
+		PercentageOneRepMaxLoadPrescription: payload.PercentageMaxLoadPrescription.ToEntity(),
+		RPELoadPrescription:                 payload.RpeLoadPrescription.ToEntity(),
 	}
 }
 
@@ -102,7 +106,7 @@ func (payload *FixedLoadPrescriptionTypePayload) ToEntity() *FixedLoadPrescripti
 }
 
 type PercentageOneRepMaxLoadPrescriptionPayload struct {
-	Percentage float64
+	Percentage float64 `json:"percentage"`
 }
 
 func (payload *PercentageOneRepMaxLoadPrescriptionPayload) ToEntity() *PercentageOneRepMaxLoadPrescription {
@@ -112,5 +116,19 @@ func (payload *PercentageOneRepMaxLoadPrescriptionPayload) ToEntity() *Percentag
 
 	return &PercentageOneRepMaxLoadPrescription{
 		Percentage: payload.Percentage,
+	}
+}
+
+type RpeLoadPrescriptionPayload struct {
+	Rpe float32 `json:"rpe"`
+}
+
+func (payload *RpeLoadPrescriptionPayload) ToEntity() *RPELoadPrescription {
+	if payload == nil {
+		return nil
+	}
+
+	return &RPELoadPrescription{
+		RPE: payload.Rpe,
 	}
 }

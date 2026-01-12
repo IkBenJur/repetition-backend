@@ -2,6 +2,7 @@ package workouttemplate
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/IkBenJur/repetition-backend/service/auth"
@@ -49,6 +50,11 @@ func (handler *Handler) handleCreateOrUpdateNewWorkout(c *gin.Context) {
 	templateWorkout.UserId = userId
 
 	if _, err := handler.Controller.CreateNewTemplateWorkout(templateWorkout); err != nil {
+		slog.Error("failed to create template workout",
+			"error", err,
+			"user_id", templateWorkout.UserId,
+			"template_name", templateWorkout.Name,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create template"})
 		return
 	}

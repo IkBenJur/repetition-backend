@@ -11,17 +11,17 @@ import (
 
 type Config struct {
 	DbConnectionUrl string
-	JWTSecret string
-	FrontEndUrl string
+	JWTSecret       string
+	FrontEndUrl     string
 }
 
 func InitConfig() Config {
 	godotenv.Load()
-	
-	return Config {
+
+	return Config{
 		DbConnectionUrl: getEnv("DATABASE_URL", ""),
-		JWTSecret: getEnv("JWT_SECRET", "a-string-secret-at-least-256-bits-long"),
-		FrontEndUrl: getEnv("FRONTEND_URL", "http://localhost:5173"),
+		JWTSecret:       getEnv("JWT_SECRET", "a-string-secret-at-least-256-bits-long"),
+		FrontEndUrl:     getEnv("FRONTEND_URL", "http://localhost:5173"),
 	}
 }
 
@@ -36,15 +36,15 @@ func getEnv(key string, fallback string) string {
 }
 
 func ConnectDatabase(config Config) (*sql.DB, error) {
-    db, err := sql.Open("pgx", config.DbConnectionUrl)
-    if err != nil {
-        log.Fatalf("Could not connect to the database: %v", err)
-    }
-	
+	db, err := sql.Open("pgx", config.DbConnectionUrl)
+	if err != nil {
+		log.Fatalf("Could not connect to the database: %v", err)
+	}
+
 	err = db.Ping()
 	if err != nil {
 		log.Fatalf("Could not ping database: %v", err)
 	}
-    
+
 	return db, nil
 }

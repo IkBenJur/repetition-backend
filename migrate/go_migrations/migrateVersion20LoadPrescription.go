@@ -8,7 +8,7 @@ import (
 
 const FixedLoadPrescriptionType = 0
 
-func MigrateVersion19LoadPrescription() error {
+func MigrateVersion20LoadPrescription() error {
 	db, err := config.ConnectDatabase(config.Envs)
 	if err != nil {
 		return err

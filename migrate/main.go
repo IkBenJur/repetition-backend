@@ -15,7 +15,7 @@ import (
 
 // Version numbers Go migrations files
 const (
-	loadPrescriptionVersionNumber = 19
+	loadPrescriptionVersionNumber = 20
 	RunAll                        = -1
 )
 
@@ -71,7 +71,7 @@ func handleUp(m *migrate.Migrate, currentVersion uint) {
 			log.Fatalf("Error running migrations: %v", err)
 		}
 
-		if err := gomigrations.MigrateVersion19LoadPrescription(); err != nil {
+		if err := gomigrations.MigrateVersion20LoadPrescription(); err != nil {
 			log.Fatalf("Error running GO migration V19 file: %v", err)
 		}
 
@@ -102,7 +102,7 @@ func handleMigrate(m *migrate.Migrate, inputVersion int, currentVersion uint) {
 			log.Fatalf("Error running migrations: %v", err)
 		}
 
-		if err := gomigrations.MigrateVersion19LoadPrescription(); err != nil {
+		if err := gomigrations.MigrateVersion20LoadPrescription(); err != nil {
 			log.Fatalf("Error running GO migration V19 file: %v", err)
 		}
 

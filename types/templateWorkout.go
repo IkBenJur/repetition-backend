@@ -35,9 +35,14 @@ type TemplateExerciseSet struct {
 }
 
 type TemplateWorkoutPayload struct {
+	Id   *int   `json:"id"`
 	Name string `json:"name" validate:"required"`
 
 	TemplateExercises []TemplateWorkoutExercisePayload `json:"templateExercises"`
+}
+
+func (payload *TemplateWorkoutPayload) IsUpdate() bool {
+	return payload.Id != nil && *payload.Id > 0
 }
 
 func (payload *TemplateWorkoutPayload) ToEntity() *TemplateWorkout {

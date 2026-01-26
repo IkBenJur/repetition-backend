@@ -28,6 +28,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	userController := user.NewController(handler.Controller.db)
 
 	router.POST("/workout-template", auth.WithJWTAuth(userController), handler.handleCreateOrUpdateNewWorkout)
+	router.PUT("/workout-template/:id", auth.WithJWTAuth(userController), handler.handleCreateOrUpdateNewWorkout)
 }
 
 // TODO For now only create but will handle update later
@@ -47,17 +48,53 @@ func (handler *Handler) handleCreateOrUpdateNewWorkout(c *gin.Context) {
 	userId := c.GetInt("userId")
 	templateWorkout := payload.ToEntity()
 
-	templateWorkout.UserId = userId
+	// Update the workout
+	if payload.IsUpdate() {
+		// Find userId for template workout
+		if _, err := handler.Controller.FindUserIdForTemplateWorkout(templateWorkout); err != nil {
+			slog.Error("Failed to update template workout",
+				"error", err,
+				"user_id", templateWorkout.UserId,
+				"template_name", templateWorkout.Name,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update template"})
+			return
+		}
 
-	if _, err := handler.Controller.CreateNewTemplateWorkout(templateWorkout); err != nil {
-		slog.Error("failed to create template workout",
-			"error", err,
-			"user_id", templateWorkout.UserId,
-			"template_name", templateWorkout.Name,
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create template"})
-		return
+		// Validate it is the same user
+		if templateWorkout.UserId != userId {
+			slog.Error("User does not own this template",
+				"user_id", userId,
+				"template_id", templateWorkout.Id,
+			)
+			c.JSON(http.StatusForbidden, gin.H{"error": "Failed to update template"})
+			return
+		}
+
+		if _, err := handler.Controller.UpdateTemplateWorkout(templateWorkout); err != nil {
+			slog.Error("Failed to update template workout",
+				"error", err,
+				"user_id", templateWorkout.UserId,
+				"template_name", templateWorkout.Name,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update template"})
+			return
+		}
+
+		c.JSON(http.StatusOK, templateWorkout)
+	} else {
+		templateWorkout.UserId = userId
+
+		if _, err := handler.Controller.CreateNewTemplateWorkout(templateWorkout); err != nil {
+			slog.Error("failed to create template workout",
+				"error", err,
+				"user_id", templateWorkout.UserId,
+				"template_name", templateWorkout.Name,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create template"})
+			return
+		}
+
+		c.JSON(http.StatusCreated, templateWorkout)
 	}
-
-	c.JSON(http.StatusCreated, templateWorkout)
 }

@@ -124,6 +124,37 @@ func (controller *Controller) CreateNewTemplateWorkout(templateWorkout *types.Te
 	return templateWorkout.Id, nil
 }
 
+func (controller *Controller) FindUserIdForTemplateWorkout(templateWorkout *types.TemplateWorkout) (int, error) {
+	var userId int
+	err := controller.db.QueryRow("SELECT user_id FROM workout_template WHERE id = $1", templateWorkout.Id).Scan(&userId)
+	if err != nil {
+		return -1, err
+	}
+
+	return userId, nil
+}
+
+func (controller *Controller) UpdateTemplateWorkout(templateWorkout *types.TemplateWorkout) (int, error) {
+
+	tx, err := controller.db.Begin()
+	if err != nil {
+		return -1, err
+	}
+	defer tx.Rollback()
+
+	updateTemplateWorkoutStatements, err := newTemplateWorkoutUpdateStatements(tx)
+	if err != nil {
+		return -1, err
+	}
+
+	_, err = updateTemplateWorkoutStatements.updateTemplateWorkoutStmt.Exec(templateWorkout.Name, templateWorkout.Id)
+	if err != nil {
+		return -1, err
+	}
+
+	return templateWorkout.Id, nil
+}
+
 func newWorkoutTemplateStatement(tx *sql.Tx) (*sql.Stmt, error) {
 	return tx.Prepare(`INSERT INTO workout_template (name, user_id)
 						VALUES ($1, $2)
@@ -140,4 +171,45 @@ func newTemplateSetStatement(tx *sql.Tx) (*sql.Stmt, error) {
 	return tx.Prepare(`INSERT INTO template_exercise_set (rep_goal, load_prescription_id)
 						VALUES ($1, $2)
 						RETURNING id`)
+}
+
+type TemplateWorkoutExerciseUpdateStatements struct {
+	updateTemplateWorkoutStmt  *sql.Stmt
+	updateTemplateExerciseStmt *sql.Stmt
+	updateTemplateSetStmt      *sql.Stmt
+}
+
+func newTemplateWorkoutUpdateStatements(tx *sql.Tx) (*TemplateWorkoutExerciseUpdateStatements, error) {
+	updateTemplateWorkoutStmt, err := updateTemplateWorkoutStatement(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	updateTemplateExerciseStmt, err := updateTemplateExerciseStatement(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	updateTemplateSetStmt, err := updateTemplateSetStatement(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TemplateWorkoutExerciseUpdateStatements{
+		updateTemplateWorkoutStmt:  updateTemplateWorkoutStmt,
+		updateTemplateExerciseStmt: updateTemplateExerciseStmt,
+		updateTemplateSetStmt:      updateTemplateSetStmt,
+	}, nil
+}
+
+func updateTemplateWorkoutStatement(tx *sql.Tx) (*sql.Stmt, error) {
+	return tx.Prepare(`UPDATE workout_template SET name = $1 WHERE id = $2`)
+}
+
+func updateTemplateExerciseStatement(tx *sql.Tx) (*sql.Stmt, error) {
+	return tx.Prepare(`UPDATE template_workout_exercise SET exercise_id = $1 WHERE id = $2`)
+}
+
+func updateTemplateSetStatement(tx *sql.Tx) (*sql.Stmt, error) {
+	return tx.Prepare(`UPDATE template_exercise_set SET rep_goal = $1, load_prescription_id = $2 WHERE id = $3`)
 }

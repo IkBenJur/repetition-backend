@@ -9,22 +9,47 @@ import (
 type BaseController struct {
 	DB        *sql.DB
 	TableName string
+
+	// Map containing columns and if they are muttable
+	columnAndMutability map[string]bool
 }
 
-func NewBaseController(db *sql.DB, tableName string) *BaseController {
+func NewBaseController(db *sql.DB, tableName string, columnAndMutability map[string]bool) *BaseController {
 	return &BaseController{
-		DB:        db,
-		TableName: tableName,
+		DB:                  db,
+		TableName:           tableName,
+		columnAndMutability: columnAndMutability,
 	}
 }
 
 // Create executes an insert query within a transaction
-func (bc *BaseController) Create(query string, args ...interface{}) (sql.Result, error) {
+func (bc *BaseController) Create(args ...interface{}) (sql.Result, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
+
+	// Create the query form the columns
+	var columnNamesBuilder strings.Builder
+	var columnIndicesBuilder strings.Builder
+	curIdx := 1
+	for columnName, _ := range bc.columnAndMutability {
+		if curIdx > 1 {
+			columnNamesBuilder.WriteString(", ")
+			columnIndicesBuilder.WriteString(", ")
+		}
+
+		columnNamesBuilder.WriteString(columnName)
+		fmt.Fprintf(&columnIndicesBuilder, "?%d", curIdx)
+	}
+
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES (%s)",
+		bc.TableName,
+		columnNamesBuilder.String(),
+		columnIndicesBuilder.String(),
+	)
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
@@ -124,29 +149,52 @@ func (bc *BaseController) CreateBulk(baseQuery string, numColumns int, argsList 
 }
 
 // Update executes an update query within a transaction
-func (bc *BaseController) Update(query string, args ...interface{}) error {
+func (bc *BaseController) Update(updateId int, args ...interface{}) (sql.Result, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
+	// Create the query form the columns
+	var updateQuery strings.Builder
+	curIdx := 1
+	for columnName, _ := range bc.columnAndMutability {
+		columnIsNotMutable := !bc.columnAndMutability[columnName]
+		if columnIsNotMutable {
+			continue
+		}
+
+		if curIdx > 1 {
+			updateQuery.WriteString(", ")
+		}
+
+		fmt.Fprintf(&updateQuery, "%s = ?%d", columnName, curIdx)
+	}
+
+	query := fmt.Sprintf(
+		"UPDATE %s SET %s WHERE id = %d",
+		bc.TableName,
+		updateQuery.String(),
+		updateId,
+	)
+
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
+		return nil, fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(args...)
+	result, err := stmt.Exec(args...)
 	if err != nil {
-		return fmt.Errorf("failed to execute statement: %w", err)
+		return nil, fmt.Errorf("failed to execute statement: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return result, err
 }
 
 // Delete removes a record by ID

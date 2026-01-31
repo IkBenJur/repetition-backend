@@ -48,17 +48,17 @@ type Exercise struct {
 	CreatedAt   time.Time
 }
 
-type UserWorkout struct {
-	ID        int
-	UserId    int
-	Name      string
-	DateStart time.Time
-	DateEnd   *time.Time
-	CreatedAt time.Time
+// type UserWorkout struct {
+// 	ID        int
+// 	UserId    int
+// 	Name      string
+// 	DateStart time.Time
+// 	DateEnd   *time.Time
+// 	CreatedAt time.Time
 
-	// Joined fields
-	UserWorkoutExercises []*UserWorkoutExercise
-}
+// 	// Joined fields
+// 	UserWorkoutExercises []*UserWorkoutExercise
+// }
 
 type UserWorkoutExercise struct {
 	ID             int
@@ -139,21 +139,21 @@ func (payload UserWorkoutExerciseSetPayload) IsUpdate() bool {
 	return payload.ID != nil && *payload.ID > 0
 }
 
-type NewUserWorkoutPayload struct {
-	Name                 string                       `json:"name" validate:"required"`
-	UserId               int                          `json:"userId"`
-	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
-}
+// type NewUserWorkoutPayload struct {
+// 	Name                 string                       `json:"name" validate:"required"`
+// 	UserId               int                          `json:"userId"`
+// 	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
+// }
 
-func (payload *NewUserWorkoutPayload) ToEntity() *UserWorkout {
-	exercises := make([]*UserWorkoutExercise, len(payload.UserWorkoutExercises))
-	for i, exercise := range payload.UserWorkoutExercises {
-		exercises[i] = exercise.ToEntity()
-	}
+// func (payload *NewUserWorkoutPayload) ToEntity() *UserWorkout {
+// 	exercises := make([]*UserWorkoutExercise, len(payload.UserWorkoutExercises))
+// 	for i, exercise := range payload.UserWorkoutExercises {
+// 		exercises[i] = exercise.ToEntity()
+// 	}
 
-	return &UserWorkout{
-		Name:                 payload.Name,
-		UserId:               payload.UserId,
-		UserWorkoutExercises: exercises,
-	}
-}
+// 	return &UserWorkout{
+// 		Name:                 payload.Name,
+// 		UserId:               payload.UserId,
+// 		UserWorkoutExercises: exercises,
+// 	}
+// }

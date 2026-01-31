@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/IkBenJur/repetition-backend/types"
+	"github.com/IkBenJur/repetition-backend/service"
+	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
 )
 
 type Controller struct {
@@ -61,7 +62,7 @@ func (controller *Controller) CreateNewUserWorkout(workout types.UserWorkout) (i
 			newSetNumber := setNumber
 			set.SetNumber = &newSetNumber
 
-			_, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight, set.SetNumber, set.IsDone)
+			// _, err := exerciseSetStmt.Exec(exerciseId, set.Reps, set.Weight, set.SetNumber, set.IsDone)
 			if err != nil {
 				return -1, err
 			}
@@ -111,14 +112,14 @@ func (controller *Controller) FindAllWorkoutsForUserId(userId int) ([]*types.Use
 	defer rows.Close()
 
 	for rows.Next() {
-		var userWorkout types.UserWorkout
+		// var userWorkout types.UserWorkout
 
-		err := rows.Scan(&userWorkout.ID, &userWorkout.UserId, &userWorkout.Name, &userWorkout.DateStart, &userWorkout.DateEnd, &userWorkout.CreatedAt)
-		if err != nil {
-			return userWorkouts, err
-		}
+		// err := rows.Scan(&userWorkout.ID, &userWorkout.UserId, &userWorkout.Name, &userWorkout.DateStart, &userWorkout.DateEnd, &userWorkout.CreatedAt)
+		// if err != nil {
+		// 	return userWorkouts, err
+		// }
 
-		userWorkouts = append(userWorkouts, &userWorkout)
+		// userWorkouts = append(userWorkouts, &userWorkout)
 	}
 
 	return userWorkouts, nil
@@ -256,4 +257,48 @@ func (controller *Controller) findWorkout(whereClause string, id int) (*types.Us
 func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 	_, err := controller.db.Exec("UPDATE userworkout SET dateend = $1 WHERE id = $2", time.Now(), id)
 	return err
+}
+
+var columns = map[string]bool{
+	"name":       true,
+	"user_id":    false,
+	"created_at": false,
+	"updated_at": true,
+}
+
+type UserWorkoutController struct {
+	*service.BaseController
+}
+
+func NewUserWorkoutController(db *sql.DB) *UserWorkoutController {
+	return &UserWorkoutController{
+		BaseController: service.NewBaseController(db, "user_workout", columns),
+	}
+}
+
+func (controller *UserWorkoutController) Save(entity *types.UserWorkout) (int64, error) {
+	entity.Touch()
+
+	if entity.IsNew() {
+		return controller.create(entity)
+	} else {
+		return controller.update(entity)
+	}
+}
+
+func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int64, error) {
+	result, err := controller.BaseController.Create(entity.Name, entity.UserId, entity.CreatedAt, entity.UpdatedAt)
+	if err != nil {
+		return -1, err
+	}
+
+	return result.LastInsertId()
+}
+
+func (controller *UserWorkoutController) update(entity *types.UserWorkout) (int64, error) {
+	result, err := controller.BaseController.Update(*entity.Id, entity.Name, entity.UpdatedAt)
+	if err != nil {
+		return -1, err
+	}
+	return result.LastInsertId()
 }

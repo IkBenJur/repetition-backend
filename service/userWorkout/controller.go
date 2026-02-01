@@ -259,11 +259,32 @@ func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 	return err
 }
 
-var columns = map[string]bool{
-	"name":       true,
-	"user_id":    false,
-	"created_at": false,
-	"updated_at": true,
+var columnDefinitions = map[string]service.ColumnDefinitionInterface{
+	"id": service.NewColumnDefinition(
+		"id",
+		false,
+		func(w *types.UserWorkout) *int { return w.Id },
+	),
+	"user_id": service.NewColumnDefinition(
+		"user_id",
+		false,
+		func(w *types.UserWorkout) *int { return w.UserId },
+	),
+	"created_at": service.NewColumnDefinition(
+		"created_at",
+		false,
+		func(w *types.UserWorkout) *time.Time { return w.CreatedAt },
+	),
+	"updated_at": service.NewColumnDefinition(
+		"updated_at",
+		true,
+		func(w *types.UserWorkout) *time.Time { return w.UpdatedAt },
+	),
+	"name": service.NewColumnDefinition(
+		"name",
+		true,
+		func(w *types.UserWorkout) *string { return &w.Name },
+	),
 }
 
 type UserWorkoutController struct {
@@ -272,7 +293,7 @@ type UserWorkoutController struct {
 
 func NewUserWorkoutController(db *sql.DB) *UserWorkoutController {
 	return &UserWorkoutController{
-		BaseController: service.NewBaseController(db, "user_workout", columns),
+		BaseController: service.NewBaseController(db, "user_workout", columnDefinitions),
 	}
 }
 

@@ -10,20 +10,109 @@ type BaseController struct {
 	DB        *sql.DB
 	TableName string
 
-	// Map containing columns and if they are muttable
-	columnAndMutability map[string]bool
+	SelectColumnsDefincition string
+	// TODO Add INSERT Column definition
+	UpdateColumnsDefinition string
+	InsertIndices           string
+
+	// Map containing info on columns and how to map to the entity
+	columnDefinitions map[string]ColumnDefinitionInterface
 }
 
-func NewBaseController(db *sql.DB, tableName string, columnAndMutability map[string]bool) *BaseController {
+type ColumnDefinitionInterface interface {
+	GetColumnName() string
+	IsMutable() bool
+	ScanValue(dest any) any             // Return pointer to field reference
+	GetValue(source any) any            // Return the value for specific fields
+	SetValue(dest any, value any) error // Set the value for specific field
+}
+
+type ColumnDefinition[Type any, Entity any] struct {
+	columnName string
+	isMutable  bool
+	// TODO Add is Primary key. This field should not end up in the INSERT or UPDATE queries
+	fieldAccesor func(*Entity) *Type // Return pointer to field
+}
+
+func (c *ColumnDefinition[Type, Entity]) GetColumnName() string {
+	return c.columnName
+}
+
+func (c *ColumnDefinition[Type, Entity]) IsMutable() bool {
+	return c.isMutable
+}
+
+func (c *ColumnDefinition[Type, Entity]) ScanValue(dest any) any {
+	return c.fieldAccesor(dest.(*Entity))
+}
+
+func (c *ColumnDefinition[Type, Entity]) GetValue(source any) any {
+	return *c.fieldAccesor(source.(*Entity))
+}
+
+func (c *ColumnDefinition[Type, Entity]) SetValue(dest any, val any) error {
+	entity := dest.(*Entity)
+	typed, ok := val.(Type)
+	if !ok {
+		return fmt.Errorf("expected type %T, got %T", *new(Type), val)
+	}
+	*c.fieldAccesor(entity) = typed
+	return nil
+}
+
+func NewColumnDefinition[Type any, Entity any](
+	name string,
+	isMutable bool,
+	fieldAccesor func(*Entity) *Type,
+) *ColumnDefinition[Type, Entity] {
+	return &ColumnDefinition[Type, Entity]{
+		columnName:   name,
+		isMutable:    isMutable,
+		fieldAccesor: fieldAccesor,
+	}
+}
+
+func NewBaseController(db *sql.DB, tableName string, columnDefinitions map[string]ColumnDefinitionInterface) *BaseController {
+
+	var selectColumnsBuilder strings.Builder
+	var columnIndicesBuilder strings.Builder
+	var UpdateColumnsBuilder strings.Builder
+
+	curIdx := 1
+	updateIdx := 1
+	for columnName, _ := range columnDefinitions {
+		if curIdx > 1 {
+			selectColumnsBuilder.WriteString(", ")
+			columnIndicesBuilder.WriteString(", ")
+		}
+
+		selectColumnsBuilder.WriteString(columnName)
+		fmt.Fprintf(&columnIndicesBuilder, "?%d", curIdx)
+
+		columnIsNotMutable := !columnDefinitions[columnName].IsMutable()
+		if columnIsNotMutable {
+			continue
+		}
+
+		if updateIdx > 1 {
+			UpdateColumnsBuilder.WriteString(", ")
+		}
+
+		fmt.Fprintf(&UpdateColumnsBuilder, "%s = ?%d", columnName, updateIdx)
+	}
+
 	return &BaseController{
-		DB:                  db,
-		TableName:           tableName,
-		columnAndMutability: columnAndMutability,
+		DB:                       db,
+		TableName:                tableName,
+		columnDefinitions:        columnDefinitions,
+		SelectColumnsDefincition: selectColumnsBuilder.String(),
+		UpdateColumnsDefinition:  UpdateColumnsBuilder.String(),
+		InsertIndices:            columnIndicesBuilder.String(),
 	}
 }
 
 // Create executes an insert query within a transaction
-func (bc *BaseController) Create(args ...interface{}) (sql.Result, error) {
+func (bc *BaseController) Create(entity any) (sql.Result, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -31,24 +120,11 @@ func (bc *BaseController) Create(args ...interface{}) (sql.Result, error) {
 	defer tx.Rollback()
 
 	// Create the query form the columns
-	var columnNamesBuilder strings.Builder
-	var columnIndicesBuilder strings.Builder
-	curIdx := 1
-	for columnName, _ := range bc.columnAndMutability {
-		if curIdx > 1 {
-			columnNamesBuilder.WriteString(", ")
-			columnIndicesBuilder.WriteString(", ")
-		}
-
-		columnNamesBuilder.WriteString(columnName)
-		fmt.Fprintf(&columnIndicesBuilder, "?%d", curIdx)
-	}
-
 	query := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES (%s)",
 		bc.TableName,
-		columnNamesBuilder.String(),
-		columnIndicesBuilder.String(),
+		bc.SelectColumnsDefincition,
+		bc.InsertIndices,
 	)
 
 	stmt, err := tx.Prepare(query)
@@ -57,7 +133,13 @@ func (bc *BaseController) Create(args ...interface{}) (sql.Result, error) {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.Exec(args...)
+	// TODO Probably reuse/precomute in creating of instance
+	getters := make([]any, 0, len(bc.columnDefinitions))
+	for _, column := range bc.columnDefinitions {
+		getters = append(getters, column.GetValue(entity))
+	}
+
+	result, err := stmt.Exec(getters...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute statement: %w", err)
 	}
@@ -157,25 +239,10 @@ func (bc *BaseController) Update(updateId int, args ...interface{}) (sql.Result,
 	defer tx.Rollback()
 
 	// Create the query form the columns
-	var updateQuery strings.Builder
-	curIdx := 1
-	for columnName, _ := range bc.columnAndMutability {
-		columnIsNotMutable := !bc.columnAndMutability[columnName]
-		if columnIsNotMutable {
-			continue
-		}
-
-		if curIdx > 1 {
-			updateQuery.WriteString(", ")
-		}
-
-		fmt.Fprintf(&updateQuery, "%s = ?%d", columnName, curIdx)
-	}
-
 	query := fmt.Sprintf(
 		"UPDATE %s SET %s WHERE id = %d",
 		bc.TableName,
-		updateQuery.String(),
+		bc.UpdateColumnsDefinition,
 		updateId,
 	)
 

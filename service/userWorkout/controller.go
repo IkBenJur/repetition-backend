@@ -2,7 +2,6 @@ package userWorkout
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/IkBenJur/repetition-backend/service"
@@ -140,118 +139,118 @@ func (controller *Controller) FindById(workoutId int) (*types.UserWorkout, error
 }
 
 func (controller *Controller) findWorkout(whereClause string, id int) (*types.UserWorkout, error) {
-	var userWorkout *types.UserWorkout
-	exerciseMap := map[int]*types.UserWorkoutExercise{}
+	// var userWorkout *types.UserWorkout
+	// exerciseMap := map[int]*types.UserWorkoutExercise{}
 
-	query := fmt.Sprintf(`SELECT
-					uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
-					uwe.id, uwe.userworkoutid, uwe.exerciseid, exer.name, uwe.createdat,
-					uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.set_number, uwes.is_done, uwes.createdat
-				FROM userworkout uw
-				LEFT JOIN userworkoutexercise uwe
-					ON uw.id = uwe.userworkoutid
-				LEFT JOIN userworkoutexerciseset uwes
-					ON uwe.id = uwes.userworkoutexerciseid
-				LEFT JOIN exercise exer
-					ON exer.id = uwe.exerciseid
-				WHERE %s ORDER BY uwe.exercise_number, uwes.set_number
-		`, whereClause)
+	// query := fmt.Sprintf(`SELECT
+	// 				uw.id, uw.name, uw.datestart, uw.dateend, uw.createdat, uw.userid,
+	// 				uwe.id, uwe.userworkoutid, uwe.exerciseid, exer.name, uwe.createdat,
+	// 				uwes.id, uwes.userworkoutexerciseid, uwes.reps, uwes.weight, uwes.set_number, uwes.is_done, uwes.createdat
+	// 			FROM userworkout uw
+	// 			LEFT JOIN userworkoutexercise uwe
+	// 				ON uw.id = uwe.userworkoutid
+	// 			LEFT JOIN userworkoutexerciseset uwes
+	// 				ON uwe.id = uwes.userworkoutexerciseid
+	// 			LEFT JOIN exercise exer
+	// 				ON exer.id = uwe.exerciseid
+	// 			WHERE %s ORDER BY uwe.exercise_number, uwes.set_number
+	// 	`, whereClause)
 
-	rows, err := controller.db.Query(query, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	// rows, err := controller.db.Query(query, id)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
 
-	for rows.Next() {
-		// Using left joins so some fields might be empty
-		// Use sql.Nullable types
-		var (
-			uw types.UserWorkout
+	// for rows.Next() {
+	// 	// Using left joins so some fields might be empty
+	// 	// Use sql.Nullable types
+	// 	var (
+	// 		uw types.UserWorkout
 
-			// Nullable fields for userWorkoutExercise
-			uweID            sql.NullInt64
-			uweUserWorkoutId sql.NullInt64
-			uweExerciseId    sql.NullInt64
-			uweExerciseName  sql.NullString
-			uweCreatedAt     sql.NullTime
+	// 		// Nullable fields for userWorkoutExercise
+	// 		uweID            sql.NullInt64
+	// 		uweUserWorkoutId sql.NullInt64
+	// 		uweExerciseId    sql.NullInt64
+	// 		uweExerciseName  sql.NullString
+	// 		uweCreatedAt     sql.NullTime
 
-			// Nullable fields for userWorkoutExerciseSet
-			uwesID                    sql.NullInt64
-			uwesUserWorkoutExerciseId sql.NullInt64
-			uwesReps                  sql.NullInt64
-			uwesWeight                sql.NullFloat64
-			uwesSetNumber             sql.NullInt64
-			uwesIsDone                sql.NullBool
-			uwesCreatedAt             sql.NullTime
-		)
+	// 		// Nullable fields for userWorkoutExerciseSet
+	// 		uwesID                    sql.NullInt64
+	// 		uwesUserWorkoutExerciseId sql.NullInt64
+	// 		uwesReps                  sql.NullInt64
+	// 		uwesWeight                sql.NullFloat64
+	// 		uwesSetNumber             sql.NullInt64
+	// 		uwesIsDone                sql.NullBool
+	// 		uwesCreatedAt             sql.NullTime
+	// 	)
 
-		err := rows.Scan(
-			&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
-			&uweID, &uweUserWorkoutId, &uweExerciseId, &uweExerciseName, &uweCreatedAt,
-			&uwesID, &uwesUserWorkoutExerciseId, &uwesReps, &uwesWeight, &uwesSetNumber, &uwesIsDone, &uwesCreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
+	// 	err := rows.Scan(
+	// 		&uw.ID, &uw.Name, &uw.DateStart, &uw.DateEnd, &uw.CreatedAt, &uw.UserId,
+	// 		&uweID, &uweUserWorkoutId, &uweExerciseId, &uweExerciseName, &uweCreatedAt,
+	// 		&uwesID, &uwesUserWorkoutExerciseId, &uwesReps, &uwesWeight, &uwesSetNumber, &uwesIsDone, &uwesCreatedAt,
+	// 	)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		if userWorkout == nil {
+	// 	if userWorkout == nil {
 
-			//Initialize an empty array
-			uw.UserWorkoutExercises = make([]*types.UserWorkoutExercise, 0)
+	// 		//Initialize an empty array
+	// 		uw.UserWorkoutExercises = make([]*types.UserWorkoutExercise, 0)
 
-			userWorkout = &uw
-		}
+	// 		userWorkout = &uw
+	// 	}
 
-		if uweID.Valid {
-			uweIDInt := int(uweID.Int64)
-			// Check whether exercise had already been added or not
-			// If not add it to the map and workout
-			if _, ok := exerciseMap[uweIDInt]; !ok {
+	// 	if uweID.Valid {
+	// 		uweIDInt := int(uweID.Int64)
+	// 		// Check whether exercise had already been added or not
+	// 		// If not add it to the map and workout
+	// 		if _, ok := exerciseMap[uweIDInt]; !ok {
 
-				// Construct new exercise
-				uwe := types.UserWorkoutExercise{
-					ID:                      uweIDInt,
-					UserWorkoutId:           int(uweUserWorkoutId.Int64),
-					ExerciseId:              int(uweExerciseId.Int64),
-					ExerciseName:            &uweExerciseName.String,
-					CreatedAt:               uweCreatedAt.Time,
-					UserWorkoutExerciseSets: make([]*types.UserWorkoutExerciseSet, 0),
-				}
+	// 			// Construct new exercise
+	// 			uwe := types.UserWorkoutExercise{
+	// 				ID:                      uweIDInt,
+	// 				UserWorkoutId:           int(uweUserWorkoutId.Int64),
+	// 				ExerciseId:              int(uweExerciseId.Int64),
+	// 				ExerciseName:            &uweExerciseName.String,
+	// 				CreatedAt:               uweCreatedAt.Time,
+	// 				UserWorkoutExerciseSets: make([]*types.UserWorkoutExerciseSet, 0),
+	// 			}
 
-				exerciseMap[uweIDInt] = &uwe
-				userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, &uwe)
+	// 			exerciseMap[uweIDInt] = &uwe
+	// 			userWorkout.UserWorkoutExercises = append(userWorkout.UserWorkoutExercises, &uwe)
 
-			}
-		}
+	// 		}
+	// 	}
 
-		if uwesID.Valid {
-			uwesIDInt := int(uwesID.Int64)
-			uweIDInt := int(uweID.Int64)
+	// 	if uwesID.Valid {
+	// 		uwesIDInt := int(uwesID.Int64)
+	// 		uweIDInt := int(uweID.Int64)
 
-			// Contruct new set object
-			reps := int(uwesReps.Int64)
-			weight := uwesWeight.Float64
-			setNumber := int(uwesSetNumber.Int64)
-			IsDone := uwesIsDone.Bool
+	// 		// Contruct new set object
+	// 		reps := int(uwesReps.Int64)
+	// 		weight := uwesWeight.Float64
+	// 		setNumber := int(uwesSetNumber.Int64)
+	// 		IsDone := uwesIsDone.Bool
 
-			uwes := types.UserWorkoutExerciseSet{
-				ID:                    uwesIDInt,
-				UserWorkoutExerciseId: int(uwesUserWorkoutExerciseId.Int64),
-				Reps:                  &reps,
-				Weight:                &weight,
-				SetNumber:             &setNumber,
-				IsDone:                IsDone,
-				CreatedAt:             uwesCreatedAt.Time,
-			}
+	// 		uwes := types.UserWorkoutExerciseSet{
+	// 			ID:                    uwesIDInt,
+	// 			UserWorkoutExerciseId: int(uwesUserWorkoutExerciseId.Int64),
+	// 			Reps:                  &reps,
+	// 			Weight:                &weight,
+	// 			SetNumber:             &setNumber,
+	// 			IsDone:                IsDone,
+	// 			CreatedAt:             uwesCreatedAt.Time,
+	// 		}
 
-			// Add the set to the existing exercise
-			parent := exerciseMap[uweIDInt]
-			parent.UserWorkoutExerciseSets = append(parent.UserWorkoutExerciseSets, &uwes)
-		}
-	}
+	// 		// Add the set to the existing exercise
+	// 		parent := exerciseMap[uweIDInt]
+	// 		parent.UserWorkoutExerciseSets = append(parent.UserWorkoutExerciseSets, &uwes)
+	// 	}
+	// }
 
-	return userWorkout, nil
+	return nil, nil
 }
 
 func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
@@ -259,28 +258,29 @@ func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 	return err
 }
 
-var columnDefinitions = map[string]service.ColumnDefinitionInterface{
-	"id": service.NewColumnDefinition(
+// TODO Think of null pointers. What to do
+var columnDefinitions = []service.ColumnDefinitionInterface{
+	service.NewColumnDefinition(
 		"id",
 		false,
-		func(w *types.UserWorkout) *int { return w.Id },
+		func(w *types.UserWorkout) *int64 { return w.Id },
 	),
-	"user_id": service.NewColumnDefinition(
+	service.NewColumnDefinition(
 		"user_id",
 		false,
-		func(w *types.UserWorkout) *int { return w.UserId },
+		func(w *types.UserWorkout) *int64 { return w.UserId },
 	),
-	"created_at": service.NewColumnDefinition(
+	service.NewColumnDefinition(
 		"created_at",
 		false,
 		func(w *types.UserWorkout) *time.Time { return w.CreatedAt },
 	),
-	"updated_at": service.NewColumnDefinition(
+	service.NewColumnDefinition(
 		"updated_at",
 		true,
 		func(w *types.UserWorkout) *time.Time { return w.UpdatedAt },
 	),
-	"name": service.NewColumnDefinition(
+	service.NewColumnDefinition(
 		"name",
 		true,
 		func(w *types.UserWorkout) *string { return &w.Name },
@@ -288,12 +288,12 @@ var columnDefinitions = map[string]service.ColumnDefinitionInterface{
 }
 
 type UserWorkoutController struct {
-	*service.BaseController
+	*service.BaseController[types.UserWorkout]
 }
 
 func NewUserWorkoutController(db *sql.DB) *UserWorkoutController {
 	return &UserWorkoutController{
-		BaseController: service.NewBaseController(db, "user_workout", columnDefinitions),
+		BaseController: service.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
 	}
 }
 
@@ -308,7 +308,7 @@ func (controller *UserWorkoutController) Save(entity *types.UserWorkout) (int64,
 }
 
 func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int64, error) {
-	result, err := controller.BaseController.Create(entity.Name, entity.UserId, entity.CreatedAt, entity.UpdatedAt)
+	result, err := controller.BaseController.Create(entity)
 	if err != nil {
 		return -1, err
 	}
@@ -316,8 +316,9 @@ func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int6
 	return result.LastInsertId()
 }
 
+// TODO Letup pointer in update
 func (controller *UserWorkoutController) update(entity *types.UserWorkout) (int64, error) {
-	result, err := controller.BaseController.Update(*entity.Id, entity.Name, entity.UpdatedAt)
+	result, err := controller.BaseController.Update(*entity.Id, *entity)
 	if err != nil {
 		return -1, err
 	}

@@ -49,7 +49,8 @@ func (server *Server) Run() {
 	exerciseHandler.RegisterRoutes(router)
 
 	userWorkoutController := userWorkout.NewController(server.db)
-	userWorkoutHandler := userWorkout.NewHandler(*userWorkoutController, userController)
+	newController := userWorkout.NewUserWorkoutController(server.db)
+	userWorkoutHandler := userWorkout.NewHandler(*userWorkoutController, userController, *newController)
 	userWorkoutHandler.RegisterRoutes(router)
 
 	userWorkoutExerciseController := userWorkoutExercise.NewController(server.db)

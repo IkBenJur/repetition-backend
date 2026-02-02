@@ -7,6 +7,7 @@ import (
 
 	"github.com/IkBenJur/repetition-backend/service/auth"
 	"github.com/IkBenJur/repetition-backend/types"
+	typesUserWorkout "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -15,16 +16,19 @@ import (
 type Handler struct {
 	controller     Controller
 	userController types.UserController
+	newController  UserWorkoutController
 }
 
-func NewHandler(controller Controller, userController types.UserController) *Handler {
+func NewHandler(controller Controller, userController types.UserController, newController UserWorkoutController) *Handler {
 	return &Handler{
 		controller:     controller,
 		userController: userController,
+		newController:  newController,
 	}
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
+	// TODO use kebab case
 	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
 	router.GET("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
 	router.GET("/userWorkout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
@@ -33,7 +37,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 }
 
 func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
-	var newUserWorkout types.NewUserWorkoutPayload
+	var newUserWorkout typesUserWorkout.NewUserWorkoutPayload
 
 	if err := c.ShouldBindJSON(&newUserWorkout); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
@@ -47,35 +51,49 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	// Set the userId to that of the logged in user
-	newUserWorkout.UserId = c.GetInt("userId")
+	userId := int64(c.GetInt("userId"))
+	newUserWorkout.UserId = &userId
 
-	userWorkout := newUserWorkout.ToEntity()
-
-	newWorkoutId, err := handler.controller.CreateNewUserWorkout(*userWorkout)
+	userWorkout, err := newUserWorkout.ToEntity()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
 	}
 
-	err = handler.userController.UpdateActiveUserWorkoutForUserId(userWorkout.UserId, newWorkoutId)
+	id, err := handler.newController.Save(userWorkout)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set new active workout"})
+		// TODO log error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
 	}
 
-	// Find the new workout from the database
-	userWorkout, err = handler.controller.FindById(newWorkoutId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find new workout"})
-		return
+	userWorkout.Id = &id
 
-	}
+	// newWorkoutId, err := handler.controller.CreateNewUserWorkout(*userWorkout)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
+	// 	return
+	// }
+
+	// err = handler.userController.UpdateActiveUserWorkoutForUserId(userWorkout.UserId, newWorkoutId)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set new active workout"})
+	// 	return
+	// }
+
+	// // Find the new workout from the database
+	// userWorkout, err = handler.controller.FindById(newWorkoutId)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find new workout"})
+	// 	return
+
+	// }
 
 	c.JSON(http.StatusCreated, userWorkout)
 }
 
 func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
-	userId := c.GetInt("userId")
+	// userId := c.GetInt("userId")
 	userWorkoutIdParam := c.Param("id")
 
 	userWorkoutId, err := strconv.Atoi(userWorkoutIdParam)
@@ -90,10 +108,10 @@ func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
 		return
 	}
 
-	if userId != userWorkout.UserId {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
-		return
-	}
+	// if userId != userWorkout.UserId {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, userWorkout)
 }

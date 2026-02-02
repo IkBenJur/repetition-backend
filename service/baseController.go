@@ -6,17 +6,20 @@ import (
 	"strings"
 )
 
-type BaseController struct {
+type BaseController[Type any] struct {
 	DB        *sql.DB
 	TableName string
 
 	SelectColumnsDefincition string
 	// TODO Add INSERT Column definition
+	// TODO Change names. Something like Select and Update Query
 	UpdateColumnsDefinition string
 	InsertIndices           string
 
-	// Map containing info on columns and how to map to the entity
-	columnDefinitions map[string]ColumnDefinitionInterface
+	// List of columns
+	// TODO Keep original list as well
+	selectDefinitions []ColumnDefinitionInterface
+	updateDefinitions []ColumnDefinitionInterface
 }
 
 type ColumnDefinitionInterface interface {
@@ -72,7 +75,10 @@ func NewColumnDefinition[Type any, Entity any](
 	}
 }
 
-func NewBaseController(db *sql.DB, tableName string, columnDefinitions map[string]ColumnDefinitionInterface) *BaseController {
+func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions []ColumnDefinitionInterface) *BaseController[Type] {
+
+	selectDefinitions := make([]ColumnDefinitionInterface, 0)
+	updateDefinitions := make([]ColumnDefinitionInterface, 0)
 
 	var selectColumnsBuilder strings.Builder
 	var columnIndicesBuilder strings.Builder
@@ -80,16 +86,24 @@ func NewBaseController(db *sql.DB, tableName string, columnDefinitions map[strin
 
 	curIdx := 1
 	updateIdx := 1
-	for columnName, _ := range columnDefinitions {
+	for _, columnDefinition := range columnDefinitions {
+		isIdField := columnDefinition.GetColumnName() == "id"
+		if isIdField {
+			continue
+		}
+
 		if curIdx > 1 {
 			selectColumnsBuilder.WriteString(", ")
 			columnIndicesBuilder.WriteString(", ")
 		}
 
-		selectColumnsBuilder.WriteString(columnName)
-		fmt.Fprintf(&columnIndicesBuilder, "?%d", curIdx)
+		selectColumnsBuilder.WriteString(columnDefinition.GetColumnName())
+		fmt.Fprintf(&columnIndicesBuilder, "$%d", curIdx)
+		curIdx++
 
-		columnIsNotMutable := !columnDefinitions[columnName].IsMutable()
+		selectDefinitions = append(selectDefinitions, columnDefinition)
+
+		columnIsNotMutable := !columnDefinition.IsMutable()
 		if columnIsNotMutable {
 			continue
 		}
@@ -98,21 +112,25 @@ func NewBaseController(db *sql.DB, tableName string, columnDefinitions map[strin
 			UpdateColumnsBuilder.WriteString(", ")
 		}
 
-		fmt.Fprintf(&UpdateColumnsBuilder, "%s = ?%d", columnName, updateIdx)
+		fmt.Fprintf(&UpdateColumnsBuilder, "%s = $%d", columnDefinition.GetColumnName(), updateIdx)
+		updateIdx++
+
+		updateDefinitions = append(updateDefinitions, columnDefinition)
 	}
 
-	return &BaseController{
+	return &BaseController[Type]{
 		DB:                       db,
 		TableName:                tableName,
-		columnDefinitions:        columnDefinitions,
 		SelectColumnsDefincition: selectColumnsBuilder.String(),
 		UpdateColumnsDefinition:  UpdateColumnsBuilder.String(),
 		InsertIndices:            columnIndicesBuilder.String(),
+		selectDefinitions:        selectDefinitions,
+		updateDefinitions:        updateDefinitions,
 	}
 }
 
 // Create executes an insert query within a transaction
-func (bc *BaseController) Create(entity any) (sql.Result, error) {
+func (bc *BaseController[Type]) Create(entity *Type) (sql.Result, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -133,9 +151,8 @@ func (bc *BaseController) Create(entity any) (sql.Result, error) {
 	}
 	defer stmt.Close()
 
-	// TODO Probably reuse/precomute in creating of instance
-	getters := make([]any, 0, len(bc.columnDefinitions))
-	for _, column := range bc.columnDefinitions {
+	getters := make([]any, 0, len(bc.selectDefinitions))
+	for _, column := range bc.selectDefinitions {
 		getters = append(getters, column.GetValue(entity))
 	}
 
@@ -152,7 +169,7 @@ func (bc *BaseController) Create(entity any) (sql.Result, error) {
 }
 
 // CreateBatch executes multiple inserts in a single transaction
-func (bc *BaseController) CreateBatch(query string, argsList [][]interface{}) error {
+func (bc *BaseController[Type]) CreateBatch(query string, argsList [][]interface{}) error {
 	if len(argsList) == 0 {
 		return nil
 	}
@@ -183,8 +200,8 @@ func (bc *BaseController) CreateBatch(query string, argsList [][]interface{}) er
 }
 
 // CreateBulk creates a single INSERT with multiple value sets (more efficient for PostgreSQL)
-// Example: INSERT INTO table (a, b) VALUES (?1, ?2), (?3, ?4), (?5, ?6)
-func (bc *BaseController) CreateBulk(baseQuery string, numColumns int, argsList [][]interface{}) error {
+// Example: INSERT INTO table (a, b) VALUES ($1, $2), ($3, $4), ($5, $6)
+func (bc *BaseController[Type]) CreateBulk(baseQuery string, numColumns int, argsList [][]interface{}) error {
 	if len(argsList) == 0 {
 		return nil
 	}
@@ -202,17 +219,17 @@ func (bc *BaseController) CreateBulk(baseQuery string, numColumns int, argsList 
 
 	for _, args := range argsList {
 
-		// rowPlaceholder = ?1, ?2, ?3, ...
+		// rowPlaceholder = $1, $2, $3, ...
 		var rowPlaceholders []string
 		for i := 0; i < numColumns; i++ {
-			rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("?%d", paramIndex))
+			rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("$%d", paramIndex))
 			paramIndex++
 		}
 
-		// Placeholder = (?1, ?2, ?3)
+		// Placeholder = ($1, $2, $3)
 		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(rowPlaceholders, ", ")))
 
-		// flatArgs = (?1, ?2, ?3), (?4, ?5, ?6) ...
+		// flatArgs = ($1, $2, $3), ($4, $5, $6) ...
 		flatArgs = append(flatArgs, args...)
 	}
 
@@ -231,7 +248,7 @@ func (bc *BaseController) CreateBulk(baseQuery string, numColumns int, argsList 
 }
 
 // Update executes an update query within a transaction
-func (bc *BaseController) Update(updateId int, args ...interface{}) (sql.Result, error) {
+func (bc *BaseController[Type]) Update(updateId int64, entity Type) (sql.Result, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -252,7 +269,12 @@ func (bc *BaseController) Update(updateId int, args ...interface{}) (sql.Result,
 	}
 	defer stmt.Close()
 
-	result, err := stmt.Exec(args...)
+	getters := make([]any, 0, len(bc.updateDefinitions))
+	for _, column := range bc.updateDefinitions {
+		getters = append(getters, column.GetValue(entity))
+	}
+
+	result, err := stmt.Exec(getters...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute statement: %w", err)
 	}
@@ -265,8 +287,8 @@ func (bc *BaseController) Update(updateId int, args ...interface{}) (sql.Result,
 }
 
 // Delete removes a record by ID
-func (bc *BaseController) Delete(id int) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?1", bc.TableName)
+func (bc *BaseController[Type]) Delete(id int) error {
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", bc.TableName)
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
@@ -296,7 +318,7 @@ func (bc *BaseController) Delete(id int) error {
 }
 
 // WithTransaction allows you to execute multiple operations in a single transaction
-func (bc *BaseController) WithTransaction(fn func(*sql.Tx) error) error {
+func (bc *BaseController[Type]) WithTransaction(fn func(*sql.Tx) error) error {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -315,12 +337,12 @@ func (bc *BaseController) WithTransaction(fn func(*sql.Tx) error) error {
 }
 
 // QueryRow executes a query that returns a single row
-func (bc *BaseController) QueryRow(query string, args ...interface{}) *sql.Row {
+func (bc *BaseController[Type]) QueryRow(query string, args ...interface{}) *sql.Row {
 	return bc.DB.QueryRow(query, args...)
 }
 
 // Query executes a query that returns multiple rows
-func (bc *BaseController) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (bc *BaseController[Type]) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	rows, err := bc.DB.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)

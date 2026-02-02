@@ -283,7 +283,7 @@ func (bc *BaseController[Type]) CreateBulk(baseQuery string, numColumns int, arg
 }
 
 // Update executes an update query within a transaction
-func (bc *BaseController[Type]) Update(updateId int64, entity *Type) (int64, error) {
+func (bc *BaseController[Type]) Update(entity *Type) (int64, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return -1, fmt.Errorf("failed to begin transaction: %w", err)

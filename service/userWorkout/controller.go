@@ -320,7 +320,7 @@ func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int6
 }
 
 func (controller *UserWorkoutController) update(entity *types.UserWorkout) (int64, error) {
-	updatedId, err := controller.BaseController.Update(*entity.Id, entity)
+	updatedId, err := controller.BaseController.Update(entity)
 	if err != nil {
 		return -1, err
 	}

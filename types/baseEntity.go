@@ -4,8 +4,10 @@ import "time"
 
 // Represent common payload base for all datatables
 type BasePayloadEntity struct {
-	Id     *int64 `json:"id"`
-	UserId *int64 `json:"user_id"`
+	Id        *int64     `json:"id"`
+	UserId    *int64     `json:"user_id"`
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
 }
 
 func (entity *BasePayloadEntity) ToBaseEntity() *BaseEntity {
@@ -19,6 +21,14 @@ func (entity *BasePayloadEntity) ToBaseEntity() *BaseEntity {
 	// Copy userId when set
 	if entity.UserId != nil {
 		base.UserId = entity.UserId
+	}
+
+	if entity.CreatedAt != nil {
+		base.CreatedAt = entity.CreatedAt
+	}
+
+	if entity.UpdatedAt != nil {
+		base.UpdatedAt = entity.UpdatedAt
 	}
 
 	return base

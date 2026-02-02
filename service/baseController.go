@@ -10,30 +10,30 @@ type BaseController[Type any] struct {
 	DB        *sql.DB
 	TableName string
 
-	SelectColumnsDefincition string
-	// TODO Add INSERT Column definition
-	// TODO Change names. Something like Select and Update Query
-	UpdateColumnsDefinition string
-	InsertIndices           string
+	SelectColumns string
+	InsertColumns string
+	UpdateColumns string
+	InsertIndices string
 
 	// List of columns
-	// TODO Keep original list as well
-	selectDefinitions []ColumnDefinitionInterface
+	columnDefinitions []ColumnDefinitionInterface
+	insertDefinitions []ColumnDefinitionInterface
 	updateDefinitions []ColumnDefinitionInterface
 }
 
 type ColumnDefinitionInterface interface {
 	GetColumnName() string
 	IsMutable() bool
+	IsPrimaryKey() bool
 	ScanValue(dest any) any             // Return pointer to field reference
 	GetValue(source any) any            // Return the value for specific fields
 	SetValue(dest any, value any) error // Set the value for specific field
 }
 
 type ColumnDefinition[Type any, Entity any] struct {
-	columnName string
-	isMutable  bool
-	// TODO Add is Primary key. This field should not end up in the INSERT or UPDATE queries
+	columnName   string
+	isMutable    bool
+	isPrimaryKey bool
 	fieldAccesor func(*Entity) *Type // Return pointer to field
 }
 
@@ -63,6 +63,10 @@ func (c *ColumnDefinition[Type, Entity]) SetValue(dest any, val any) error {
 	return nil
 }
 
+func (c *ColumnDefinition[Type, Entity]) IsPrimaryKey() bool {
+	return c.IsPrimaryKey()
+}
+
 func NewColumnDefinition[Type any, Entity any](
 	name string,
 	isMutable bool,
@@ -77,31 +81,39 @@ func NewColumnDefinition[Type any, Entity any](
 
 func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions []ColumnDefinitionInterface) *BaseController[Type] {
 
-	selectDefinitions := make([]ColumnDefinitionInterface, 0)
+	insertDefinitions := make([]ColumnDefinitionInterface, 0)
 	updateDefinitions := make([]ColumnDefinitionInterface, 0)
 
 	var selectColumnsBuilder strings.Builder
-	var columnIndicesBuilder strings.Builder
-	var UpdateColumnsBuilder strings.Builder
+	var insertColumnsBuilder strings.Builder
+	var insertIndicesBuilder strings.Builder
+	var updateColumnsBuilder strings.Builder
 
-	curIdx := 1
+	selectIdx := 1
+	insertIdx := 1
 	updateIdx := 1
 	for _, columnDefinition := range columnDefinitions {
-		isIdField := columnDefinition.GetColumnName() == "id"
-		if isIdField {
-			continue
-		}
 
-		if curIdx > 1 {
+		if selectIdx > 1 {
 			selectColumnsBuilder.WriteString(", ")
-			columnIndicesBuilder.WriteString(", ")
 		}
 
 		selectColumnsBuilder.WriteString(columnDefinition.GetColumnName())
-		fmt.Fprintf(&columnIndicesBuilder, "$%d", curIdx)
-		curIdx++
 
-		selectDefinitions = append(selectDefinitions, columnDefinition)
+		if columnDefinition.IsPrimaryKey() {
+			continue
+		}
+
+		if insertIdx > 1 {
+			insertColumnsBuilder.WriteString(", ")
+			insertIndicesBuilder.WriteString(", ")
+		}
+
+		insertColumnsBuilder.WriteString(columnDefinition.GetColumnName())
+		fmt.Fprintf(&insertIndicesBuilder, "$%d", insertIdx)
+		insertIdx++
+
+		insertDefinitions = append(insertDefinitions, columnDefinition)
 
 		columnIsNotMutable := !columnDefinition.IsMutable()
 		if columnIsNotMutable {
@@ -109,23 +121,25 @@ func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions
 		}
 
 		if updateIdx > 1 {
-			UpdateColumnsBuilder.WriteString(", ")
+			updateColumnsBuilder.WriteString(", ")
 		}
 
-		fmt.Fprintf(&UpdateColumnsBuilder, "%s = $%d", columnDefinition.GetColumnName(), updateIdx)
+		fmt.Fprintf(&updateColumnsBuilder, "%s = $%d", columnDefinition.GetColumnName(), updateIdx)
 		updateIdx++
 
 		updateDefinitions = append(updateDefinitions, columnDefinition)
 	}
 
 	return &BaseController[Type]{
-		DB:                       db,
-		TableName:                tableName,
-		SelectColumnsDefincition: selectColumnsBuilder.String(),
-		UpdateColumnsDefinition:  UpdateColumnsBuilder.String(),
-		InsertIndices:            columnIndicesBuilder.String(),
-		selectDefinitions:        selectDefinitions,
-		updateDefinitions:        updateDefinitions,
+		DB:                db,
+		TableName:         tableName,
+		SelectColumns:     selectColumnsBuilder.String(),
+		InsertColumns:     insertColumnsBuilder.String(),
+		UpdateColumns:     updateColumnsBuilder.String(),
+		InsertIndices:     insertIndicesBuilder.String(),
+		columnDefinitions: columnDefinitions,
+		insertDefinitions: insertDefinitions,
+		updateDefinitions: updateDefinitions,
 	}
 }
 
@@ -141,7 +155,7 @@ func (bc *BaseController[Type]) Create(entity *Type) (sql.Result, error) {
 	query := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES (%s)",
 		bc.TableName,
-		bc.SelectColumnsDefincition,
+		bc.InsertColumns,
 		bc.InsertIndices,
 	)
 
@@ -151,8 +165,8 @@ func (bc *BaseController[Type]) Create(entity *Type) (sql.Result, error) {
 	}
 	defer stmt.Close()
 
-	getters := make([]any, 0, len(bc.selectDefinitions))
-	for _, column := range bc.selectDefinitions {
+	getters := make([]any, 0, len(bc.insertDefinitions))
+	for _, column := range bc.insertDefinitions {
 		getters = append(getters, column.GetValue(entity))
 	}
 
@@ -259,7 +273,7 @@ func (bc *BaseController[Type]) Update(updateId int64, entity Type) (sql.Result,
 	query := fmt.Sprintf(
 		"UPDATE %s SET %s WHERE id = %d",
 		bc.TableName,
-		bc.UpdateColumnsDefinition,
+		bc.UpdateColumns,
 		updateId,
 	)
 

@@ -16,9 +16,10 @@ type BaseController[Type any] struct {
 	InsertIndices string
 
 	// List of columns
-	columnDefinitions []ColumnDefinitionInterface
-	insertDefinitions []ColumnDefinitionInterface
-	updateDefinitions []ColumnDefinitionInterface
+	PrimaryKeyDefinition ColumnDefinitionInterface
+	columnDefinitions    []ColumnDefinitionInterface
+	insertDefinitions    []ColumnDefinitionInterface
+	updateDefinitions    []ColumnDefinitionInterface
 }
 
 type ColumnDefinitionInterface interface {
@@ -103,6 +104,8 @@ func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions
 	var insertIndicesBuilder strings.Builder
 	var updateColumnsBuilder strings.Builder
 
+	var primaryKeyDefinition ColumnDefinitionInterface
+
 	selectIdx := 1
 	insertIdx := 1
 	updateIdx := 1
@@ -113,8 +116,10 @@ func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions
 		}
 
 		selectColumnsBuilder.WriteString(columnDefinition.GetColumnName())
+		selectIdx++
 
 		if columnDefinition.IsPrimaryKey() {
+			primaryKeyDefinition = columnDefinition
 			continue
 		}
 
@@ -145,15 +150,16 @@ func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions
 	}
 
 	return &BaseController[Type]{
-		DB:                db,
-		TableName:         tableName,
-		SelectColumns:     selectColumnsBuilder.String(),
-		InsertColumns:     insertColumnsBuilder.String(),
-		UpdateColumns:     updateColumnsBuilder.String(),
-		InsertIndices:     insertIndicesBuilder.String(),
-		columnDefinitions: columnDefinitions,
-		insertDefinitions: insertDefinitions,
-		updateDefinitions: updateDefinitions,
+		DB:                   db,
+		TableName:            tableName,
+		SelectColumns:        selectColumnsBuilder.String(),
+		InsertColumns:        insertColumnsBuilder.String(),
+		UpdateColumns:        updateColumnsBuilder.String(),
+		InsertIndices:        insertIndicesBuilder.String(),
+		PrimaryKeyDefinition: primaryKeyDefinition,
+		columnDefinitions:    columnDefinitions,
+		insertDefinitions:    insertDefinitions,
+		updateDefinitions:    updateDefinitions,
 	}
 }
 
@@ -277,42 +283,45 @@ func (bc *BaseController[Type]) CreateBulk(baseQuery string, numColumns int, arg
 }
 
 // Update executes an update query within a transaction
-func (bc *BaseController[Type]) Update(updateId int64, entity Type) (sql.Result, error) {
+func (bc *BaseController[Type]) Update(updateId int64, entity *Type) (int64, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return -1, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Create the query form the columns
+	// Create the query form the columns TODO SQL INJECTION
 	query := fmt.Sprintf(
-		"UPDATE %s SET %s WHERE id = %d",
+		"UPDATE %s SET %s WHERE id = $%d RETURNING id",
 		bc.TableName,
 		bc.UpdateColumns,
-		updateId,
+		len(bc.updateDefinitions)+1,
 	)
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to prepare statement: %w", err)
+		return -1, fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
-	getters := make([]any, 0, len(bc.updateDefinitions))
+	updateFields := make([]any, 0, len(bc.updateDefinitions)+1) // Plus 1 because of ID field
 	for _, column := range bc.updateDefinitions {
-		getters = append(getters, column.GetValue(entity))
+		updateFields = append(updateFields, column.GetValue(entity))
 	}
 
-	result, err := stmt.Exec(getters...)
+	updateFields = append(updateFields, bc.PrimaryKeyDefinition.GetValue(entity))
+
+	var updatedId int64
+	err = stmt.QueryRow(updateFields...).Scan(&updatedId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute statement: %w", err)
+		return -1, fmt.Errorf("failed to execute statement: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return -1, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return result, err
+	return updatedId, err
 }
 
 // Delete removes a record by ID

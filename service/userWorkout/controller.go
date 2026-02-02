@@ -319,11 +319,11 @@ func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int6
 	return int64Id, nil
 }
 
-// TODO Letup pointer in update
 func (controller *UserWorkoutController) update(entity *types.UserWorkout) (int64, error) {
-	result, err := controller.BaseController.Update(*entity.Id, *entity)
+	updatedId, err := controller.BaseController.Update(*entity.Id, entity)
 	if err != nil {
 		return -1, err
 	}
-	return result.RowsAffected()
+
+	return updatedId, nil
 }

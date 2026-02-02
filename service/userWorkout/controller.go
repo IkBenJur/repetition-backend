@@ -260,7 +260,7 @@ func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 
 // TODO Think of null pointers. What to do
 var columnDefinitions = []service.ColumnDefinitionInterface{
-	service.NewColumnDefinition(
+	service.NewPrimaryKeyColumnDefinition(
 		"id",
 		false,
 		func(w *types.UserWorkout) *int64 { return w.Id },
@@ -308,12 +308,15 @@ func (controller *UserWorkoutController) Save(entity *types.UserWorkout) (int64,
 }
 
 func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int64, error) {
-	result, err := controller.BaseController.Create(entity)
+	newId, err := controller.BaseController.Create(entity)
 	if err != nil {
 		return -1, err
 	}
 
-	return result.LastInsertId()
+	int64Id := int64(newId)
+	entity.Id = &int64Id
+
+	return int64Id, nil
 }
 
 // TODO Letup pointer in update
@@ -322,5 +325,5 @@ func (controller *UserWorkoutController) update(entity *types.UserWorkout) (int6
 	if err != nil {
 		return -1, err
 	}
-	return result.LastInsertId()
+	return result.RowsAffected()
 }

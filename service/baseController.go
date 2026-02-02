@@ -64,7 +64,20 @@ func (c *ColumnDefinition[Type, Entity]) SetValue(dest any, val any) error {
 }
 
 func (c *ColumnDefinition[Type, Entity]) IsPrimaryKey() bool {
-	return c.IsPrimaryKey()
+	return c.isPrimaryKey
+}
+
+func NewPrimaryKeyColumnDefinition[Type any, Entity any](
+	name string,
+	isMutable bool,
+	fieldAccesor func(*Entity) *Type,
+) *ColumnDefinition[Type, Entity] {
+	return &ColumnDefinition[Type, Entity]{
+		columnName:   name,
+		isPrimaryKey: true,
+		isMutable:    isMutable,
+		fieldAccesor: fieldAccesor,
+	}
 }
 
 func NewColumnDefinition[Type any, Entity any](
@@ -74,6 +87,7 @@ func NewColumnDefinition[Type any, Entity any](
 ) *ColumnDefinition[Type, Entity] {
 	return &ColumnDefinition[Type, Entity]{
 		columnName:   name,
+		isPrimaryKey: false,
 		isMutable:    isMutable,
 		fieldAccesor: fieldAccesor,
 	}
@@ -144,16 +158,16 @@ func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions
 }
 
 // Create executes an insert query within a transaction
-func (bc *BaseController[Type]) Create(entity *Type) (sql.Result, error) {
+func (bc *BaseController[Type]) Create(entity *Type) (int, error) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return -1, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
 	// Create the query form the columns
 	query := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES (%s)",
+		"INSERT INTO %s (%s) VALUES (%s) RETURNING id",
 		bc.TableName,
 		bc.InsertColumns,
 		bc.InsertIndices,
@@ -161,7 +175,7 @@ func (bc *BaseController[Type]) Create(entity *Type) (sql.Result, error) {
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to prepare statement: %w", err)
+		return -1, fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
@@ -170,16 +184,17 @@ func (bc *BaseController[Type]) Create(entity *Type) (sql.Result, error) {
 		getters = append(getters, column.GetValue(entity))
 	}
 
-	result, err := stmt.Exec(getters...)
+	var newId int
+	err = stmt.QueryRow(getters...).Scan(&newId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute statement: %w", err)
+		return -1, fmt.Errorf("failed to execute statement: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return -1, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return result, nil
+	return newId, nil
 }
 
 // CreateBatch executes multiple inserts in a single transaction

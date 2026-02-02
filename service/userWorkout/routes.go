@@ -30,7 +30,7 @@ func NewHandler(controller Controller, userController types.UserController, newC
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	// TODO use kebab case
 	router.POST("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
-	router.PUT("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	router.PUT("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleUpdateUserWorkout)
 	router.GET("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
 	router.GET("/user-workout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
 	router.GET("/user-workout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
@@ -91,6 +91,43 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	// }
 
 	c.JSON(http.StatusCreated, userWorkout)
+}
+
+func (handler *Handler) handleUpdateUserWorkout(c *gin.Context) {
+	var userWorkoutPayload typesUserWorkout.NewUserWorkoutPayload
+
+	if err := c.ShouldBindJSON(&userWorkoutPayload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	if err := utils.Validate.Struct(userWorkoutPayload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+		return
+	}
+
+	userWorkout, err := userWorkoutPayload.ToEntity()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+		return
+	}
+
+	// Validate user id
+	userId := int64(c.GetInt("userId"))
+	if *userWorkout.UserId != userId {
+		fmt.Printf("userWorkout.UserdId: %v. userId: %v. %v", userWorkout.UserId, userId, userWorkout.UserId != &userId)
+		c.JSON(http.StatusForbidden, gin.H{"error": "something went wrong"})
+	}
+
+	_, err = handler.newController.Save(userWorkout)
+	if err != nil {
+		// TODO log error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+		return
+	}
+
+	c.JSON(http.StatusOK, userWorkout)
 }
 
 func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {

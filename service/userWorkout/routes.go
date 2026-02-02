@@ -29,11 +29,12 @@ func NewHandler(controller Controller, userController types.UserController, newC
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	// TODO use kebab case
-	router.POST("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
-	router.GET("/userWorkout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
-	router.GET("/userWorkout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
-	router.GET("/userWorkout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
-	router.PUT("/userWorkout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
+	router.POST("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	router.PUT("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	router.GET("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
+	router.GET("/user-workout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
+	router.GET("/user-workout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
+	router.PUT("/user-workout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
 }
 
 func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {

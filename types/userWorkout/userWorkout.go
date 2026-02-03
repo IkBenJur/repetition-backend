@@ -46,3 +46,19 @@ type UserWorkout struct {
 	DateEnd              *time.Time
 	UserWorkoutExercises []*UserWorkoutExercise
 }
+
+func (uw *UserWorkout) MarkStarted() {
+	if uw.DateStart != nil {
+		return
+	}
+	dateStart := time.Now()
+	uw.DateStart = &dateStart
+}
+
+func (uw *UserWorkout) MarkFinished() {
+	if uw.DateEnd != nil {
+		return
+	}
+	dateEnd := time.Now()
+	uw.DateEnd = &dateEnd
+}

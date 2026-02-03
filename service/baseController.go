@@ -243,50 +243,58 @@ func (bc *BaseController[Type]) CreateBatch(query string, argsList [][]interface
 
 // CreateBulk creates a single INSERT with multiple value sets (more efficient for PostgreSQL)
 // Example: INSERT INTO table (a, b) VALUES ($1, $2), ($3, $4), ($5, $6)
-func (bc *BaseController[Type]) CreateBulk(baseQuery string, numColumns int, argsList [][]interface{}) error {
-	if len(argsList) == 0 {
-		return nil
-	}
-
+func (bc *BaseController[Type]) CreateBulk(entities []*Type) ([]int64, error) {
+	ids := make([]int64, len(entities))
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return ids, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
 	// Build the bulk insert query
-	var placeholders []string
-	var flatArgs []interface{}
+	numColumns := len(bc.insertDefinitions)
+	numRows := len(entities)
+	getters := make([]any, 0, numColumns*numRows)
+	bulkInsertValues := make([]string, 0, numRows)
+
 	paramIndex := 1
+	for _, entity := range entities {
+		rowPlaceholders := make([]string, 0, numColumns)
 
-	for _, args := range argsList {
-
-		// rowPlaceholder = $1, $2, $3, ...
-		var rowPlaceholders []string
-		for i := 0; i < numColumns; i++ {
+		for _, column := range bc.insertDefinitions {
 			rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("$%d", paramIndex))
+			getters = append(getters, column.GetValue(entity))
 			paramIndex++
 		}
 
-		// Placeholder = ($1, $2, $3)
-		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(rowPlaceholders, ", ")))
-
-		// flatArgs = ($1, $2, $3), ($4, $5, $6) ...
-		flatArgs = append(flatArgs, args...)
+		bulkInsertValues = append(bulkInsertValues, fmt.Sprintf("(%s)", strings.Join(rowPlaceholders, ", ")))
 	}
 
-	query := fmt.Sprintf("%s VALUES %s", baseQuery, strings.Join(placeholders, ", "))
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES %s RETURNING id",
+		bc.TableName,
+		bc.InsertColumns,
+		strings.Join(bulkInsertValues, ", "),
+	)
 
-	_, err = tx.Exec(query, flatArgs...)
+	rows, err := tx.Query(query, getters...)
 	if err != nil {
-		return fmt.Errorf("failed to execute bulk insert: %w", err)
+		return ids, fmt.Errorf("failed to execute bulk insert: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return ids, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	// TODO Rows is empty with batch insert for standard sql driver.
+	// Should be fixed when switching the the pgx driver as well
+	for rows.Next() {
+		var id int64
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 // Update executes an update query within a transaction

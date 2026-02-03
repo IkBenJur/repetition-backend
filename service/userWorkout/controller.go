@@ -307,6 +307,14 @@ func NewUserWorkoutController(db *sql.DB) *UserWorkoutController {
 	}
 }
 
+func (controller *UserWorkoutController) CreateBulk(entities []*types.UserWorkout) ([]int64, error) {
+	for _, entity := range entities {
+		entity.Touch()
+	}
+
+	return controller.BaseController.CreateBulk(entities)
+}
+
 func (controller *UserWorkoutController) Save(entity *types.UserWorkout) (int64, error) {
 	entity.Touch()
 

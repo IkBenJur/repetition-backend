@@ -31,6 +31,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	// TODO use kebab case
 	router.POST("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
 	router.PUT("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleUpdateUserWorkout)
+	router.POST("/user-workout-bulk", auth.WithJWTAuth(handler.userController), handler.handleBulkInsertUserWorkout)
 	router.GET("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
 	router.GET("/user-workout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
 	router.GET("/user-workout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
@@ -69,6 +70,7 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	userWorkout.Id = &id
+	userWorkout.MarkStarted()
 
 	// newWorkoutId, err := handler.controller.CreateNewUserWorkout(*userWorkout)
 	// if err != nil {
@@ -128,6 +130,49 @@ func (handler *Handler) handleUpdateUserWorkout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userWorkout)
+}
+
+func (handler *Handler) handleBulkInsertUserWorkout(c *gin.Context) {
+	var userWorkoutsPayload []typesUserWorkout.NewUserWorkoutPayload
+
+	if err := c.ShouldBindJSON(&userWorkoutsPayload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	// Get logged in user Id
+	userId := int64(c.GetInt("userId"))
+
+	userWorkouts := make([]*typesUserWorkout.UserWorkout, len(userWorkoutsPayload))
+	for i, payload := range userWorkoutsPayload {
+		if err := utils.Validate.Struct(payload); err != nil {
+			errors := err.(validator.ValidationErrors)
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
+			return
+		}
+
+		userWorkout, err := payload.ToEntity()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+			return
+		}
+
+		// Set the userId to that of the logged in user
+		userWorkout.UserId = &userId
+		userWorkout.MarkStarted()
+
+		userWorkouts[i] = userWorkout
+
+	}
+
+	ids, err := handler.newController.CreateBulk(userWorkouts)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, ids)
+
 }
 
 func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {

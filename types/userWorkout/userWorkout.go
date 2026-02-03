@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"time"
 
 	"github.com/IkBenJur/repetition-backend/types"
 )
@@ -9,6 +10,8 @@ import (
 type NewUserWorkoutPayload struct {
 	types.BasePayloadEntity
 	Name                 string                       `json:"name" validate:"required"`
+	DateStart            *time.Time                   `json:"date_start"`
+	DateEnd              *time.Time                   `json:"date_end"`
 	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
 }
 
@@ -30,6 +33,8 @@ func (payload *NewUserWorkoutPayload) ToEntity() (*UserWorkout, error) {
 	return &UserWorkout{
 		BaseEntity:           *baseEntity,
 		Name:                 payload.Name,
+		DateStart:            payload.DateStart,
+		DateEnd:              payload.DateEnd,
 		UserWorkoutExercises: exercises,
 	}, nil
 }
@@ -37,5 +42,7 @@ func (payload *NewUserWorkoutPayload) ToEntity() (*UserWorkout, error) {
 type UserWorkout struct {
 	types.BaseEntity
 	Name                 string
+	DateStart            *time.Time
+	DateEnd              *time.Time
 	UserWorkoutExercises []*UserWorkoutExercise
 }

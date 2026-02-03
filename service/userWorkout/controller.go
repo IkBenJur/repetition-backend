@@ -285,6 +285,16 @@ var columnDefinitions = []service.ColumnDefinitionInterface{
 		true,
 		func(w *types.UserWorkout) *string { return &w.Name },
 	),
+	service.NewColumnDefinition(
+		"date_start",
+		true,
+		func(w *types.UserWorkout) *time.Time { return w.DateStart },
+	),
+	service.NewColumnDefinition(
+		"date_end",
+		true,
+		func(w *types.UserWorkout) *time.Time { return w.DateEnd },
+	),
 }
 
 type UserWorkoutController struct {

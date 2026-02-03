@@ -46,14 +46,21 @@ func (c *ColumnDefinition[Type, Entity]) IsMutable() bool {
 	return c.isMutable
 }
 
+// For writing values to entity. ScanRows. Returns pointer
 func (c *ColumnDefinition[Type, Entity]) ScanValue(dest any) any {
 	return c.fieldAccesor(dest.(*Entity))
 }
 
+// For reading from entity. Handles nil pointers
 func (c *ColumnDefinition[Type, Entity]) GetValue(source any) any {
-	return *c.fieldAccesor(source.(*Entity))
+	ptr := c.fieldAccesor(source.(*Entity))
+	if ptr == nil {
+		return nil
+	}
+	return *ptr
 }
 
+// TODO Prob remove. Not used
 func (c *ColumnDefinition[Type, Entity]) SetValue(dest any, val any) error {
 	entity := dest.(*Entity)
 	typed, ok := val.(Type)

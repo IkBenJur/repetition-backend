@@ -316,7 +316,7 @@ func (bc *BaseController[Type]) Update(ctx context.Context, entity *Type) (int64
 	}
 	defer tx.Rollback(ctx)
 
-	// Create the query form the columns TODO SQL INJECTION
+	// Create the query form the columns
 	query := fmt.Sprintf(
 		"UPDATE %s SET %s WHERE id = $%d RETURNING id",
 		bc.TableName,
@@ -390,16 +390,37 @@ func (bc *BaseController[Type]) WithTransaction(ctx context.Context, fn func(pgx
 	return nil
 }
 
-// QueryRow executes a query that returns a single row
-func (bc *BaseController[Type]) QueryRow(ctx context.Context, query string, args ...interface{}) pgx.Row {
-	return bc.DB.QueryRow(ctx, query, args...)
-}
+// TODO Create a way for filtering
+func (bc *BaseController[Type]) FindList(ctx context.Context, userId int64) ([]*Type, error) {
+	entities := make([]*Type, 0)
+	// Create select query
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE user_id = $1",
+		bc.SelectColumns,
+		bc.TableName,
+	)
 
-// Query executes a query that returns multiple rows
-func (bc *BaseController[Type]) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
-	rows, err := bc.DB.Query(ctx, query, args...)
+	rows, err := bc.DB.Query(ctx, query, userId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		return entities, err
 	}
-	return rows, nil
+	defer rows.Close()
+
+	for rows.Next() {
+		entity := new(Type)
+
+		setters := make([]any, 0, len(bc.columnDefinitions))
+		for _, columnDefinition := range bc.columnDefinitions {
+			setters = append(setters, columnDefinition.ScanValue(entity))
+		}
+
+		if err := rows.Scan(setters...); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+
+		entities = append(entities, entity)
+
+	}
+
+	return entities, nil
 }

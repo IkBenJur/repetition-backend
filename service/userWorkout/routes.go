@@ -37,6 +37,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	router.PUT("/user-workout", handler.handleUpdateUserWorkout)
 	router.POST("/user-workout-bulk", handler.handleBulkInsertUserWorkout)
 	router.POST("/user-workout-batch", handler.handleBatchInsertUserWorkout)
+	router.GET("/user-workout", handler.handleFindList)
 }
 
 func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
@@ -221,6 +222,20 @@ func (handler *Handler) handleBatchInsertUserWorkout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, ids)
+}
+
+func (handler *Handler) handleFindList(c *gin.Context) {
+	// TODO Find userId
+	userId := int64(1)
+
+	// Find user workouts
+	userWorkouts, err := handler.controller.FindList(c.Request.Context(), userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+		return
+	}
+
+	c.JSON(http.StatusOK, userWorkouts)
 }
 
 // func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {

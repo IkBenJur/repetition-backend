@@ -260,27 +260,26 @@ func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 	return err
 }
 
-// TODO Think of null pointers. What to do
 var columnDefinitions = []service.ColumnDefinitionInterface{
 	service.NewPrimaryKeyColumnDefinition(
 		"id",
 		false,
-		func(w *types.UserWorkout) *int64 { return w.Id },
+		func(w *types.UserWorkout) **int64 { return &w.Id },
 	),
 	service.NewColumnDefinition(
 		"user_id",
 		false,
-		func(w *types.UserWorkout) *int64 { return w.UserId },
+		func(w *types.UserWorkout) **int64 { return &w.UserId },
 	),
 	service.NewColumnDefinition(
 		"created_at",
 		false,
-		func(w *types.UserWorkout) *time.Time { return w.CreatedAt },
+		func(w *types.UserWorkout) **time.Time { return &w.CreatedAt },
 	),
 	service.NewColumnDefinition(
 		"updated_at",
 		true,
-		func(w *types.UserWorkout) *time.Time { return w.UpdatedAt },
+		func(w *types.UserWorkout) **time.Time { return &w.UpdatedAt },
 	),
 	service.NewColumnDefinition(
 		"name",
@@ -290,12 +289,12 @@ var columnDefinitions = []service.ColumnDefinitionInterface{
 	service.NewColumnDefinition(
 		"date_start",
 		true,
-		func(w *types.UserWorkout) *time.Time { return w.DateStart },
+		func(w *types.UserWorkout) **time.Time { return &w.DateStart },
 	),
 	service.NewColumnDefinition(
 		"date_end",
 		true,
-		func(w *types.UserWorkout) *time.Time { return w.DateEnd },
+		func(w *types.UserWorkout) **time.Time { return &w.DateEnd },
 	),
 }
 

@@ -3,10 +3,7 @@ package userWorkout
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/IkBenJur/repetition-backend/service/auth"
-	"github.com/IkBenJur/repetition-backend/types"
 	typesUserWorkout "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
@@ -14,28 +11,32 @@ import (
 )
 
 type Handler struct {
-	controller     Controller
-	userController types.UserController
-	newController  UserWorkoutController
+	// controller     Controller
+	// userController types.UserController
+	controller UserWorkoutController
 }
 
-func NewHandler(controller Controller, userController types.UserController, newController UserWorkoutController) *Handler {
+func NewHandler(controller UserWorkoutController) *Handler {
 	return &Handler{
-		controller:     controller,
-		userController: userController,
-		newController:  newController,
+		// controller:     controller,
+		// userController: userController,
+		controller: controller,
 	}
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
-	router.PUT("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleUpdateUserWorkout)
-	router.POST("/user-workout-bulk", auth.WithJWTAuth(handler.userController), handler.handleBulkInsertUserWorkout)
-	router.POST("/user-workout-batch", auth.WithJWTAuth(handler.userController), handler.handleBatchInsertUserWorkout)
-	router.GET("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
-	router.GET("/user-workout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
-	router.GET("/user-workout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
-	router.PUT("/user-workout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
+	// router.POST("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	// router.PUT("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleUpdateUserWorkout)
+	// router.POST("/user-workout-bulk", auth.WithJWTAuth(handler.userController), handler.handleBulkInsertUserWorkout)
+	// router.POST("/user-workout-batch", auth.WithJWTAuth(handler.userController), handler.handleBatchInsertUserWorkout)
+	// router.GET("/user-workout", auth.WithJWTAuth(handler.userController), handler.handleGetAllUserWorkouts)
+	// router.GET("/user-workout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
+	// router.GET("/user-workout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
+	// router.PUT("/user-workout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
+	router.POST("/user-workout", handler.handleCreateNewUserWorkout)
+	router.PUT("/user-workout", handler.handleUpdateUserWorkout)
+	router.POST("/user-workout-bulk", handler.handleBulkInsertUserWorkout)
+	router.POST("/user-workout-batch", handler.handleBatchInsertUserWorkout)
 }
 
 func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
@@ -62,7 +63,7 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 		return
 	}
 
-	id, err := handler.newController.Save(userWorkout)
+	id, err := handler.controller.Save(c.Request.Context(), userWorkout)
 	if err != nil {
 		// TODO log error
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
@@ -122,7 +123,7 @@ func (handler *Handler) handleUpdateUserWorkout(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "something went wrong"})
 	}
 
-	_, err = handler.newController.Save(userWorkout)
+	_, err = handler.controller.Save(c.Request.Context(), userWorkout)
 	if err != nil {
 		// TODO log error
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
@@ -165,7 +166,7 @@ func (handler *Handler) handleBulkInsertUserWorkout(c *gin.Context) {
 
 	}
 
-	ids, err := handler.newController.CreateBulk(userWorkouts)
+	ids, err := handler.controller.CreateBulk(c.Request.Context(), userWorkouts)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
@@ -207,7 +208,7 @@ func (handler *Handler) handleBatchInsertUserWorkout(c *gin.Context) {
 
 	}
 
-	ids, err := handler.newController.CreateBatch(userWorkouts)
+	ids, err := handler.controller.CreateBatch(c.Request.Context(), userWorkouts)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
@@ -216,112 +217,112 @@ func (handler *Handler) handleBatchInsertUserWorkout(c *gin.Context) {
 	c.JSON(http.StatusCreated, ids)
 }
 
-func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
-	// userId := c.GetInt("userId")
-	userWorkoutIdParam := c.Param("id")
+// func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
+// 	// userId := c.GetInt("userId")
+// 	userWorkoutIdParam := c.Param("id")
 
-	userWorkoutId, err := strconv.Atoi(userWorkoutIdParam)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	userWorkoutId, err := strconv.Atoi(userWorkoutIdParam)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	userWorkout, err := handler.controller.FindById(userWorkoutId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	userWorkout, err := handler.controller.FindById(userWorkoutId)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	// if userId != userWorkout.UserId {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
-	// 	return
-	// }
+// 	// if userId != userWorkout.UserId {
+// 	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
+// 	// 	return
+// 	// }
 
-	c.JSON(http.StatusOK, userWorkout)
-}
+// 	c.JSON(http.StatusOK, userWorkout)
+// }
 
-func (handler *Handler) handleGetAllUserWorkouts(c *gin.Context) {
-	userId := c.GetInt("userId")
+// func (handler *Handler) handleGetAllUserWorkouts(c *gin.Context) {
+// 	userId := c.GetInt("userId")
 
-	userWorkouts, err := handler.controller.FindAllWorkoutsForUserId(userId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	userWorkouts, err := handler.controller.FindAllWorkoutsForUserId(userId)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, userWorkouts)
-}
+// 	c.JSON(http.StatusOK, userWorkouts)
+// }
 
-func (handler *Handler) handleFindActiveUserWorkout(c *gin.Context) {
-	userId := c.GetInt("userId")
+// func (handler *Handler) handleFindActiveUserWorkout(c *gin.Context) {
+// 	userId := c.GetInt("userId")
 
-	userWorkout, err := handler.controller.FindActiveWorkoutForUserId(userId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	userWorkout, err := handler.controller.FindActiveWorkoutForUserId(userId)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, userWorkout)
-}
+// 	c.JSON(http.StatusOK, userWorkout)
+// }
 
-func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
-	idParam := c.Param("id")
-	userId := c.GetInt("userId")
+// func (handler *Handler) handleMarkUserworkoutAsComplete(c *gin.Context) {
+// 	idParam := c.Param("id")
+// 	userId := c.GetInt("userId")
 
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
-		return
-	}
+// 	id, err := strconv.Atoi(idParam)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+// 		return
+// 	}
 
-	workoutUserId, err := handler.controller.FindUserIdForUserworkoutId(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	workoutUserId, err := handler.controller.FindUserIdForUserworkoutId(id)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	if workoutUserId != userId {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid"})
-		return
-	}
+// 	if workoutUserId != userId {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid"})
+// 		return
+// 	}
 
-	err = handler.controller.MarkUserWorkoutAsComplete(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	err = handler.controller.MarkUserWorkoutAsComplete(id)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	user, err := handler.userController.GetUserById(userId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	user, err := handler.userController.GetUserById(userId)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	// Find the userWorkout again
-	userWorkout, err := handler.controller.FindById(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	// Find the userWorkout again
+// 	userWorkout, err := handler.controller.FindById(id)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	// Check if active workout for user should also be reset
-	if user.ActiveUserWorkoutId == nil {
-		c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": false})
-		return
-	}
+// 	// Check if active workout for user should also be reset
+// 	if user.ActiveUserWorkoutId == nil {
+// 		c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": false})
+// 		return
+// 	}
 
-	if *user.ActiveUserWorkoutId != id {
-		c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": false})
-		return
-	}
+// 	if *user.ActiveUserWorkoutId != id {
+// 		c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": false})
+// 		return
+// 	}
 
-	// Remove the active workout
-	user.ActiveUserWorkoutId = nil
-	err = handler.userController.UpdateUser(*user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
+// 	// Remove the active workout
+// 	user.ActiveUserWorkoutId = nil
+// 	err = handler.userController.UpdateUser(*user)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": true})
-}
+// 	c.JSON(http.StatusOK, gin.H{"userWorkout": userWorkout, "wasActiveWorkout": true})
+// }

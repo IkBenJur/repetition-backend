@@ -1,11 +1,13 @@
 package userWorkout
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
 	"github.com/IkBenJur/repetition-backend/service"
 	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Controller struct {
@@ -301,40 +303,40 @@ type UserWorkoutController struct {
 	*service.BaseController[types.UserWorkout]
 }
 
-func NewUserWorkoutController(db *sql.DB) *UserWorkoutController {
+func NewUserWorkoutController(db *pgxpool.Pool) *UserWorkoutController {
 	return &UserWorkoutController{
 		BaseController: service.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
 	}
 }
 
-func (controller *UserWorkoutController) CreateBulk(entities []*types.UserWorkout) ([]int64, error) {
+func (controller *UserWorkoutController) CreateBulk(ctx context.Context, entities []*types.UserWorkout) ([]int64, error) {
 	for _, entity := range entities {
 		entity.Touch()
 	}
 
-	return controller.BaseController.CreateBulk(entities)
+	return controller.BaseController.CreateBulk(ctx, entities)
 }
 
-func (controller *UserWorkoutController) CreateBatch(entites []*types.UserWorkout) ([]int64, error) {
+func (controller *UserWorkoutController) CreateBatch(ctx context.Context, entites []*types.UserWorkout) ([]int64, error) {
 	for _, entity := range entites {
 		entity.Touch()
 	}
 
-	return controller.BaseController.CreateBatch(entites)
+	return controller.BaseController.CreateBatch(ctx, entites)
 }
 
-func (controller *UserWorkoutController) Save(entity *types.UserWorkout) (int64, error) {
+func (controller *UserWorkoutController) Save(ctx context.Context, entity *types.UserWorkout) (int64, error) {
 	entity.Touch()
 
 	if entity.IsNew() {
-		return controller.create(entity)
+		return controller.create(ctx, entity)
 	} else {
-		return controller.update(entity)
+		return controller.update(ctx, entity)
 	}
 }
 
-func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int64, error) {
-	newId, err := controller.BaseController.Create(entity)
+func (controller *UserWorkoutController) create(ctx context.Context, entity *types.UserWorkout) (int64, error) {
+	newId, err := controller.BaseController.Create(ctx, entity)
 	if err != nil {
 		return -1, err
 	}
@@ -345,8 +347,8 @@ func (controller *UserWorkoutController) create(entity *types.UserWorkout) (int6
 	return int64Id, nil
 }
 
-func (controller *UserWorkoutController) update(entity *types.UserWorkout) (int64, error) {
-	updatedId, err := controller.BaseController.Update(entity)
+func (controller *UserWorkoutController) update(ctx context.Context, entity *types.UserWorkout) (int64, error) {
+	updatedId, err := controller.BaseController.Update(ctx, entity)
 	if err != nil {
 		return -1, err
 	}

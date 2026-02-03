@@ -1,27 +1,22 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"time"
 
 	"github.com/IkBenJur/repetition-backend/config"
-	userWorkoutExercise "github.com/IkBenJur/repetition-backend/service/UserWorkoutExercise"
-	userWorkoutExerciseSet "github.com/IkBenJur/repetition-backend/service/UserWorkoutExerciseSet"
-	"github.com/IkBenJur/repetition-backend/service/exercise"
-	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
-	workouttemplate "github.com/IkBenJur/repetition-backend/service/workoutTemplate"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
 	Addres string
-	db     *sql.DB
+	db     *pgxpool.Pool
 }
 
-func NewServer(address string, db *sql.DB) *Server {
+func NewServer(address string, db *pgxpool.Pool) *Server {
 	return &Server{
 		Addres: address,
 		db:     db,
@@ -40,30 +35,30 @@ func (server *Server) Run() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	userController := user.NewController(server.db)
-	userHandler := user.NewHandler(userController)
-	userHandler.RegisterRoutes(router)
+	// userController := user.NewController(server.db)
+	// userHandler := user.NewHandler(userController)
+	// userHandler.RegisterRoutes(router)
 
-	exerciseController := exercise.NewController(server.db)
-	exerciseHandler := exercise.NewHandler(exerciseController)
-	exerciseHandler.RegisterRoutes(router)
+	// exerciseController := exercise.NewController(server.db)
+	// exerciseHandler := exercise.NewHandler(exerciseController)
+	// exerciseHandler.RegisterRoutes(router)
 
-	userWorkoutController := userWorkout.NewController(server.db)
+	// userWorkoutController := userWorkout.NewController(server.db)
 	newController := userWorkout.NewUserWorkoutController(server.db)
-	userWorkoutHandler := userWorkout.NewHandler(*userWorkoutController, userController, *newController)
+	userWorkoutHandler := userWorkout.NewHandler(*newController)
 	userWorkoutHandler.RegisterRoutes(router)
 
-	userWorkoutExerciseController := userWorkoutExercise.NewController(server.db)
-	userWorkoutExerciseHandler := userWorkoutExercise.NewHandler(*userWorkoutExerciseController, userController, *userWorkoutController)
-	userWorkoutExerciseHandler.RegisterRoutes(router)
+	// userWorkoutExerciseController := userWorkoutExercise.NewController(server.db)
+	// userWorkoutExerciseHandler := userWorkoutExercise.NewHandler(*userWorkoutExerciseController, userController, *userWorkoutController)
+	// userWorkoutExerciseHandler.RegisterRoutes(router)
 
-	userWorkoutExerciseSetController := userWorkoutExerciseSet.NewController(server.db)
-	userWorkoutExerciseSetHandler := userWorkoutExerciseSet.NewHandler(*userWorkoutExerciseSetController, userController, *userWorkoutExerciseController)
-	userWorkoutExerciseSetHandler.RegisterRoutes(router)
+	// userWorkoutExerciseSetController := userWorkoutExerciseSet.NewController(server.db)
+	// userWorkoutExerciseSetHandler := userWorkoutExerciseSet.NewHandler(*userWorkoutExerciseSetController, userController, *userWorkoutExerciseController)
+	// userWorkoutExerciseSetHandler.RegisterRoutes(router)
 
-	templateWorkoutController := workouttemplate.NewController(server.db)
-	templateWorkoutHandler := workouttemplate.NewHandler(*templateWorkoutController)
-	templateWorkoutHandler.RegisterRoutes(router)
+	// templateWorkoutController := workouttemplate.NewController(server.db)
+	// templateWorkoutHandler := workouttemplate.NewHandler(*templateWorkoutController)
+	// templateWorkoutHandler.RegisterRoutes(router)
 
 	router.Run(server.Addres)
 }

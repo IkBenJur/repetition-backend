@@ -1,13 +1,16 @@
 package service
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type BaseController[Type any] struct {
-	DB        *sql.DB
+	DB        *pgxpool.Pool
 	TableName string
 
 	SelectColumns string
@@ -101,7 +104,7 @@ func NewColumnDefinition[Type any, Entity any](
 	}
 }
 
-func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions []ColumnDefinitionInterface) *BaseController[Type] {
+func NewBaseController[Type any](db *pgxpool.Pool, tableName string, columnDefinitions []ColumnDefinitionInterface) *BaseController[Type] {
 
 	insertDefinitions := make([]ColumnDefinitionInterface, 0)
 	updateDefinitions := make([]ColumnDefinitionInterface, 0)
@@ -171,12 +174,12 @@ func NewBaseController[Type any](db *sql.DB, tableName string, columnDefinitions
 }
 
 // Create executes an insert query within a transaction
-func (bc *BaseController[Type]) Create(entity *Type) (int, error) {
-	tx, err := bc.DB.Begin()
+func (bc *BaseController[Type]) Create(ctx context.Context, entity *Type) (int, error) {
+	tx, err := bc.DB.Begin(ctx)
 	if err != nil {
 		return -1, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Create the query form the columns
 	query := fmt.Sprintf(
@@ -185,12 +188,6 @@ func (bc *BaseController[Type]) Create(entity *Type) (int, error) {
 		bc.InsertColumns,
 		bc.InsertIndices,
 	)
-
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		return -1, fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
 
 	getters := make([]any, 0, len(bc.insertDefinitions))
 	for _, column := range bc.insertDefinitions {
@@ -198,12 +195,12 @@ func (bc *BaseController[Type]) Create(entity *Type) (int, error) {
 	}
 
 	var newId int
-	err = stmt.QueryRow(getters...).Scan(&newId)
+	err = bc.DB.QueryRow(ctx, query, getters...).Scan(&newId)
 	if err != nil {
 		return -1, fmt.Errorf("failed to execute statement: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return -1, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -211,13 +208,13 @@ func (bc *BaseController[Type]) Create(entity *Type) (int, error) {
 }
 
 // CreateBatch executes multiple inserts in a single transaction
-func (bc *BaseController[Type]) CreateBatch(entities []*Type) ([]int64, error) {
+func (bc *BaseController[Type]) CreateBatch(ctx context.Context, entities []*Type) ([]int64, error) {
 	ids := make([]int64, 0, len(entities))
-	tx, err := bc.DB.Begin()
+	tx, err := bc.DB.Begin(ctx)
 	if err != nil {
 		return ids, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Create the query form the columns
 	query := fmt.Sprintf(
@@ -226,12 +223,6 @@ func (bc *BaseController[Type]) CreateBatch(entities []*Type) ([]int64, error) {
 		bc.InsertColumns,
 		bc.InsertIndices,
 	)
-
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		return ids, fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
 
 	for _, entity := range entities {
 
@@ -241,7 +232,7 @@ func (bc *BaseController[Type]) CreateBatch(entities []*Type) ([]int64, error) {
 		}
 
 		var newId int64
-		err = stmt.QueryRow(getters...).Scan(&newId)
+		err = bc.DB.QueryRow(ctx, query, getters...).Scan(&newId)
 		if err != nil {
 			return ids, fmt.Errorf("failed to execute statement: %w", err)
 		}
@@ -249,7 +240,7 @@ func (bc *BaseController[Type]) CreateBatch(entities []*Type) ([]int64, error) {
 		ids = append(ids, int64(newId))
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return ids, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -258,13 +249,13 @@ func (bc *BaseController[Type]) CreateBatch(entities []*Type) ([]int64, error) {
 
 // CreateBulk creates a single INSERT with multiple value sets (more efficient for PostgreSQL)
 // Example: INSERT INTO table (a, b) VALUES ($1, $2), ($3, $4), ($5, $6)
-func (bc *BaseController[Type]) CreateBulk(entities []*Type) ([]int64, error) {
+func (bc *BaseController[Type]) CreateBulk(ctx context.Context, entities []*Type) ([]int64, error) {
 	ids := make([]int64, 0, len(entities))
-	tx, err := bc.DB.Begin()
+	tx, err := bc.DB.Begin(ctx)
 	if err != nil {
 		return ids, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Build the bulk insert query
 	numColumns := len(bc.insertDefinitions)
@@ -292,33 +283,32 @@ func (bc *BaseController[Type]) CreateBulk(entities []*Type) ([]int64, error) {
 		strings.Join(bulkInsertValues, ", "),
 	)
 
-	rows, err := tx.Query(query, getters...)
+	rows, err := tx.Query(ctx, query, getters...)
 	if err != nil {
 		return ids, fmt.Errorf("failed to execute bulk insert: %w", err)
 	}
+	defer rows.Close()
 
-	if err := tx.Commit(); err != nil {
-		return ids, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	// TODO Rows is empty with batch insert for standard sql driver.
-	// Should be fixed when switching the the pgx driver as well
 	for rows.Next() {
 		var id int64
 		rows.Scan(&id)
 		ids = append(ids, id)
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return ids, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return ids, nil
 }
 
 // Update executes an update query within a transaction
-func (bc *BaseController[Type]) Update(entity *Type) (int64, error) {
-	tx, err := bc.DB.Begin()
+func (bc *BaseController[Type]) Update(ctx context.Context, entity *Type) (int64, error) {
+	tx, err := bc.DB.Begin(ctx)
 	if err != nil {
 		return -1, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Create the query form the columns TODO SQL INJECTION
 	query := fmt.Sprintf(
@@ -328,12 +318,6 @@ func (bc *BaseController[Type]) Update(entity *Type) (int64, error) {
 		len(bc.updateDefinitions)+1,
 	)
 
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		return -1, fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
 	updateFields := make([]any, 0, len(bc.updateDefinitions)+1) // Plus 1 because of ID field
 	for _, column := range bc.updateDefinitions {
 		updateFields = append(updateFields, column.GetValue(entity))
@@ -342,12 +326,12 @@ func (bc *BaseController[Type]) Update(entity *Type) (int64, error) {
 	updateFields = append(updateFields, bc.PrimaryKeyDefinition.GetValue(entity))
 
 	var updatedId int64
-	err = stmt.QueryRow(updateFields...).Scan(&updatedId)
+	err = bc.DB.QueryRow(ctx, query, updateFields...).Scan(&updatedId)
 	if err != nil {
 		return -1, fmt.Errorf("failed to execute statement: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return -1, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -355,30 +339,26 @@ func (bc *BaseController[Type]) Update(entity *Type) (int64, error) {
 }
 
 // Delete removes a record by ID
-func (bc *BaseController[Type]) Delete(id int) error {
+func (bc *BaseController[Type]) Delete(ctx context.Context, id int) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = $1", bc.TableName)
 
-	tx, err := bc.DB.Begin()
+	tx, err := bc.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
-	result, err := tx.Exec(query, id)
+	result, err := tx.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
+	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return fmt.Errorf("no record found with id %d", id)
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -386,18 +366,18 @@ func (bc *BaseController[Type]) Delete(id int) error {
 }
 
 // WithTransaction allows you to execute multiple operations in a single transaction
-func (bc *BaseController[Type]) WithTransaction(fn func(*sql.Tx) error) error {
-	tx, err := bc.DB.Begin()
+func (bc *BaseController[Type]) WithTransaction(ctx context.Context, fn func(pgx.Tx) error) error {
+	tx, err := bc.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	if err := fn(tx); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -405,13 +385,13 @@ func (bc *BaseController[Type]) WithTransaction(fn func(*sql.Tx) error) error {
 }
 
 // QueryRow executes a query that returns a single row
-func (bc *BaseController[Type]) QueryRow(query string, args ...interface{}) *sql.Row {
-	return bc.DB.QueryRow(query, args...)
+func (bc *BaseController[Type]) QueryRow(ctx context.Context, query string, args ...interface{}) pgx.Row {
+	return bc.DB.QueryRow(ctx, query, args...)
 }
 
 // Query executes a query that returns multiple rows
-func (bc *BaseController[Type]) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	rows, err := bc.DB.Query(query, args...)
+func (bc *BaseController[Type]) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
+	rows, err := bc.DB.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}

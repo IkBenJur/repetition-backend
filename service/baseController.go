@@ -211,40 +211,55 @@ func (bc *BaseController[Type]) Create(entity *Type) (int, error) {
 }
 
 // CreateBatch executes multiple inserts in a single transaction
-func (bc *BaseController[Type]) CreateBatch(query string, argsList [][]interface{}) error {
-	if len(argsList) == 0 {
-		return nil
-	}
-
+func (bc *BaseController[Type]) CreateBatch(entities []*Type) ([]int64, error) {
+	ids := make([]int64, 0, len(entities))
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return ids, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
+	// Create the query form the columns
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES (%s) RETURNING id",
+		bc.TableName,
+		bc.InsertColumns,
+		bc.InsertIndices,
+	)
+
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
+		return ids, fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
-	for _, args := range argsList {
-		if _, err := stmt.Exec(args...); err != nil {
-			return fmt.Errorf("failed to execute batch insert: %w", err)
+	for _, entity := range entities {
+
+		getters := make([]any, 0, len(bc.insertDefinitions))
+		for _, column := range bc.insertDefinitions {
+			getters = append(getters, column.GetValue(entity))
 		}
+
+		var newId int64
+		err = stmt.QueryRow(getters...).Scan(&newId)
+		if err != nil {
+			return ids, fmt.Errorf("failed to execute statement: %w", err)
+		}
+
+		ids = append(ids, int64(newId))
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return ids, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return ids, nil
 }
 
 // CreateBulk creates a single INSERT with multiple value sets (more efficient for PostgreSQL)
 // Example: INSERT INTO table (a, b) VALUES ($1, $2), ($3, $4), ($5, $6)
 func (bc *BaseController[Type]) CreateBulk(entities []*Type) ([]int64, error) {
-	ids := make([]int64, len(entities))
+	ids := make([]int64, 0, len(entities))
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		return ids, fmt.Errorf("failed to begin transaction: %w", err)

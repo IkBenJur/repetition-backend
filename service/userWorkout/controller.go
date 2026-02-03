@@ -315,6 +315,14 @@ func (controller *UserWorkoutController) CreateBulk(entities []*types.UserWorkou
 	return controller.BaseController.CreateBulk(entities)
 }
 
+func (controller *UserWorkoutController) CreateBatch(entites []*types.UserWorkout) ([]int64, error) {
+	for _, entity := range entites {
+		entity.Touch()
+	}
+
+	return controller.BaseController.CreateBatch(entites)
+}
+
 func (controller *UserWorkoutController) Save(entity *types.UserWorkout) (int64, error) {
 	entity.Touch()
 

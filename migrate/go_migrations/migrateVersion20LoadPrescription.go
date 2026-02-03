@@ -1,9 +1,10 @@
 package gomigrations
 
 import (
-	"database/sql"
+	"context"
 
 	"github.com/IkBenJur/repetition-backend/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const FixedLoadPrescriptionType = 0
@@ -19,51 +20,47 @@ func MigrateVersion20LoadPrescription() error {
 		return err
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.Begin(context.Background())
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
-
-	insertLoadPrescriptionStatement, err := tx.Prepare("INSERT INTO load_prescription (type_id) VALUES ($1) RETURNING id")
-	if err != nil {
-		return err
-	}
-	defer insertLoadPrescriptionStatement.Close()
-
-	insertFixedLoadPrescriptionStatement, err := tx.Prepare("INSERT INTO fixed_load_prescription (id, weight) VALUES ($1, $2)")
-	if err != nil {
-		return err
-	}
-	defer insertFixedLoadPrescriptionStatement.Close()
-
-	updateSetStatement, err := tx.Prepare("UPDATE userworkoutexerciseset SET load_prescription_id = $1 WHERE id = $2")
-	if err != nil {
-		return err
-	}
-	defer updateSetStatement.Close()
+	defer tx.Rollback(context.Background())
 
 	for _, set := range sets {
 		var addedPrescriptionId int
 
-		err := insertLoadPrescriptionStatement.QueryRow(FixedLoadPrescriptionType).Scan(&addedPrescriptionId)
+		err := db.QueryRow(
+			context.Background(),
+			"INSERT INTO load_prescription (type_id) VALUES ($1) RETURNING id",
+			FixedLoadPrescriptionType,
+		).Scan(&addedPrescriptionId)
 		if err != nil {
 			return err
 		}
 
-		_, err = insertFixedLoadPrescriptionStatement.Exec(addedPrescriptionId, set.weight)
+		_, err = db.Exec(
+			context.Background(),
+			"INSERT INTO fixed_load_prescription (id, weight) VALUES ($1, $2)",
+			addedPrescriptionId,
+			set.weight,
+		)
 		if err != nil {
 			return err
 		}
 
-		_, err = updateSetStatement.Exec(addedPrescriptionId, set.id)
+		_, err = db.Exec(
+			context.Background(),
+			"UPDATE userworkoutexerciseset SET load_prescription_id = $1 WHERE id = $2",
+			addedPrescriptionId,
+			set.id,
+		)
 		if err != nil {
 			return err
 		}
 
 	}
 
-	return tx.Commit()
+	return tx.Commit(context.Background())
 }
 
 // Only fields relevant for migration
@@ -72,10 +69,10 @@ type set struct {
 	weight float64
 }
 
-func findAllSets(db *sql.DB) ([]set, error) {
+func findAllSets(db *pgxpool.Pool) ([]set, error) {
 	sets := make([]set, 0)
 
-	rows, err := db.Query("SELECT id, weight FROM userworkoutexerciseset")
+	rows, err := db.Query(context.Background(), "SELECT id, weight FROM userworkoutexerciseset")
 	if err != nil {
 		return sets, err
 	}

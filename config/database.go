@@ -1,11 +1,12 @@
 package config
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/joho/godotenv"
 )
 
@@ -35,16 +36,16 @@ func getEnv(key string, fallback string) string {
 	return fallback
 }
 
-func ConnectDatabase(config Config) (*sql.DB, error) {
-	db, err := sql.Open("pgx", config.DbConnectionUrl)
+func ConnectDatabase(config Config) (*pgxpool.Pool, error) {
+	dbPool, err := pgxpool.New(context.Background(), config.DbConnectionUrl)
 	if err != nil {
 		log.Fatalf("Could not connect to the database: %v", err)
 	}
 
-	err = db.Ping()
+	err = dbPool.Ping(context.Background())
 	if err != nil {
 		log.Fatalf("Could not ping database: %v", err)
 	}
 
-	return db, nil
+	return dbPool, nil
 }

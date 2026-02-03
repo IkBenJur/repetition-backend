@@ -54,7 +54,8 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	// Set the userId to that of the logged in user
-	userId := int64(c.GetInt("userId"))
+	// userId := int64(c.GetInt("userId"))
+	userId := int64(1)
 	newUserWorkout.UserId = &userId
 
 	userWorkout, err := newUserWorkout.ToEntity()
@@ -62,6 +63,8 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
 	}
+
+	userWorkout.MarkStarted()
 
 	id, err := handler.controller.Save(c.Request.Context(), userWorkout)
 	if err != nil {
@@ -71,7 +74,6 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	userWorkout.Id = &id
-	userWorkout.MarkStarted()
 
 	// newWorkoutId, err := handler.controller.CreateNewUserWorkout(*userWorkout)
 	// if err != nil {
@@ -117,10 +119,12 @@ func (handler *Handler) handleUpdateUserWorkout(c *gin.Context) {
 	}
 
 	// Validate user id
-	userId := int64(c.GetInt("userId"))
+	// userId := int64(c.GetInt("userId"))
+	userId := int64(1)
 	if *userWorkout.UserId != userId {
 		fmt.Printf("userWorkout.UserdId: %v. userId: %v. %v", userWorkout.UserId, userId, userWorkout.UserId != &userId)
 		c.JSON(http.StatusForbidden, gin.H{"error": "something went wrong"})
+		return
 	}
 
 	_, err = handler.controller.Save(c.Request.Context(), userWorkout)
@@ -142,7 +146,8 @@ func (handler *Handler) handleBulkInsertUserWorkout(c *gin.Context) {
 	}
 
 	// Get logged in user Id
-	userId := int64(c.GetInt("userId"))
+	// userId := int64(c.GetInt("userId"))
+	userId := int64(1)
 
 	userWorkouts := make([]*typesUserWorkout.UserWorkout, len(userWorkoutsPayload))
 	for i, payload := range userWorkoutsPayload {
@@ -184,7 +189,8 @@ func (handler *Handler) handleBatchInsertUserWorkout(c *gin.Context) {
 	}
 
 	// Get logged in user Id
-	userId := int64(c.GetInt("userId"))
+	// userId := int64(c.GetInt("userId"))
+	userId := int64(1)
 
 	userWorkouts := make([]*typesUserWorkout.UserWorkout, len(userWorkoutsPayload))
 	for i, payload := range userWorkoutsPayload {

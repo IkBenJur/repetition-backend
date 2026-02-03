@@ -291,8 +291,14 @@ func (bc *BaseController[Type]) CreateBulk(ctx context.Context, entities []*Type
 
 	for rows.Next() {
 		var id int64
-		rows.Scan(&id)
+		if err := rows.Scan(&id); err != nil {
+			return ids, fmt.Errorf("failed to scan id: %w", err)
+		}
 		ids = append(ids, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return ids, fmt.Errorf("error during rows iteration: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

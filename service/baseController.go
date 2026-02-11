@@ -390,7 +390,6 @@ func (bc *BaseController[Type]) WithTransaction(ctx context.Context, fn func(pgx
 	return nil
 }
 
-// TODO Create a way for filtering
 func (bc *BaseController[Type]) FindList(ctx context.Context, userId int64) ([]*Type, error) {
 	entities := make([]*Type, 0)
 	// Create select query
@@ -423,4 +422,41 @@ func (bc *BaseController[Type]) FindList(ctx context.Context, userId int64) ([]*
 	}
 
 	return entities, nil
+}
+
+func (bc *BaseController[Type]) FindById(
+	ctx context.Context,
+	entityId int64,
+	userId int64) (*Type, error) {
+
+	// Create select query
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE id = $1 AND user_id = $2",
+		bc.SelectColumns,
+		bc.TableName,
+	)
+
+	rows, err := bc.DB.Query(ctx, query, entityId, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, fmt.Errorf("No rows.Next")
+	}
+
+	entity := new(Type)
+
+	setters := make([]any, 0, len(bc.columnDefinitions))
+	for _, columnDefinition := range bc.columnDefinitions {
+		setters = append(setters, columnDefinition.ScanValue(entity))
+	}
+
+	if err := rows.Scan(setters...); err != nil {
+		return nil, fmt.Errorf("scan failed: %w", err)
+	}
+
+	return entity, nil
+
 }

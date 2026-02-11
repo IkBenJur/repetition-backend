@@ -354,3 +354,11 @@ func (controller *UserWorkoutController) update(ctx context.Context, entity *typ
 
 	return updatedId, nil
 }
+
+// func (controller *UserWorkoutController) FindById(ctx context.Context, id int64, userId int64) (*types.UserWorkout, error) {
+// return controller.BaseController.FindById(ctx, id, userId)
+// }
+
+// func (controller *UserWorkoutController) FindList(ctx context.Context, userId int64) ([]*types.UserWorkout, error) {
+// 	return controller.BaseController.FindList(ctx, userId)
+// }

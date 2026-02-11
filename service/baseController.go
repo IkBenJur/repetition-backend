@@ -391,7 +391,6 @@ func (bc *BaseController[Type]) WithTransaction(ctx context.Context, fn func(pgx
 }
 
 func (bc *BaseController[Type]) FindList(ctx context.Context, userId int64) ([]*Type, error) {
-	entities := make([]*Type, 0)
 	// Create select query
 	query := fmt.Sprintf(
 		"SELECT %s FROM %s WHERE user_id = $1",
@@ -401,27 +400,11 @@ func (bc *BaseController[Type]) FindList(ctx context.Context, userId int64) ([]*
 
 	rows, err := bc.DB.Query(ctx, query, userId)
 	if err != nil {
-		return entities, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		entity := new(Type)
-
-		setters := make([]any, 0, len(bc.columnDefinitions))
-		for _, columnDefinition := range bc.columnDefinitions {
-			setters = append(setters, columnDefinition.ScanValue(entity))
-		}
-
-		if err := rows.Scan(setters...); err != nil {
-			return nil, fmt.Errorf("scan failed: %w", err)
-		}
-
-		entities = append(entities, entity)
-
-	}
-
-	return entities, nil
+	return bc.ScanRows(rows)
 }
 
 func (bc *BaseController[Type]) FindById(
@@ -442,7 +425,32 @@ func (bc *BaseController[Type]) FindById(
 	}
 	defer rows.Close()
 
-	if !rows.Next() {
+	return bc.ScanRow(rows)
+}
+
+func (bc BaseController[Type]) ScanRows(rows pgx.Rows) ([]*Type, error) {
+	entities := make([]*Type, 0)
+
+	for rows.Next() {
+		entity := new(Type)
+
+		setters := make([]any, 0, len(bc.columnDefinitions))
+		for _, columnDefinition := range bc.columnDefinitions {
+			setters = append(setters, columnDefinition.ScanValue(entity))
+		}
+
+		if err := rows.Scan(setters...); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
+}
+
+func (bc BaseController[Type]) ScanRow(row pgx.Rows) (*Type, error) {
+	if !row.Next() {
 		return nil, fmt.Errorf("No rows.Next")
 	}
 
@@ -453,10 +461,9 @@ func (bc *BaseController[Type]) FindById(
 		setters = append(setters, columnDefinition.ScanValue(entity))
 	}
 
-	if err := rows.Scan(setters...); err != nil {
+	if err := row.Scan(setters...); err != nil {
 		return nil, fmt.Errorf("scan failed: %w", err)
 	}
 
 	return entity, nil
-
 }

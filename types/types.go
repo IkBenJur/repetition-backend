@@ -4,13 +4,13 @@ import (
 	"time"
 )
 
-type UserController interface {
-	GetUserByUsername(username string) (*User, error)
-	CreateNewUser(user User) error
-	UpdateUser(user User) error
-	GetUserById(id int) (*User, error)
-	UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error
-}
+// type UserController interface {
+// 	GetUserByUsername(username string) (*User, error)
+// 	CreateNewUser(user User) error
+// 	UpdateUser(user User) error
+// 	GetUserById(id int) (*User, error)
+// 	UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error
+// }
 
 type ExerciseController interface {
 	GetAllExercise() ([]Exercise, error)
@@ -18,23 +18,23 @@ type ExerciseController interface {
 	SaveExercise(exercise Exercise) error
 }
 
-type RegisterUserPayload struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required,min=3,max=130"`
-}
+// type RegisterUserPayload struct {
+// 	Username string `json:"username" validate:"required"`
+// 	Password string `json:"password" validate:"required,min=3,max=130"`
+// }
 
-type LoginUserPayload struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-}
+// type LoginUserPayload struct {
+// 	Username string `json:"username" validate:"required"`
+// 	Password string `json:"password" validate:"required"`
+// }
 
-type User struct {
-	ID                  int
-	ActiveUserWorkoutId *int
-	Username            string
-	Password            string
-	CreatedAt           time.Time
-}
+// type User struct {
+// 	ID                  int
+// 	ActiveUserWorkoutId *int
+// 	Username            string
+// 	Password            string
+// 	CreatedAt           time.Time
+// }
 
 type NewExercisePayload struct {
 	Name        string `json:"name" validate:"required"`

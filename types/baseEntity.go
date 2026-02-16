@@ -5,9 +5,9 @@ import "time"
 // Represent common payload base for all datatables
 type BasePayloadEntity struct {
 	Id        *int64     `json:"id"`
-	UserId    *int64     `json:"user_id"`
-	CreatedAt *time.Time `json:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at"`
+	UserId    *int64     `json:"userId"`
+	CreatedAt *time.Time `json:"createdAt"`
+	UpdatedAt *time.Time `json:"updatedAt"`
 }
 
 func (entity *BasePayloadEntity) ToBaseEntity() *BaseEntity {

@@ -10,8 +10,8 @@ import (
 type NewUserWorkoutPayload struct {
 	types.BasePayloadEntity
 	Name                 string                       `json:"name" validate:"required"`
-	DateStart            *time.Time                   `json:"date_start"`
-	DateEnd              *time.Time                   `json:"date_end"`
+	DateStart            *time.Time                   `json:"dateStart"`
+	DateEnd              *time.Time                   `json:"dateEnd"`
 	UserWorkoutExercises []UserWorkoutExercisePayload `json:"userWorkoutExercises"`
 }
 

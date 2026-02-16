@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/IkBenJur/repetition-backend/config"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -35,9 +36,9 @@ func (server *Server) Run() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// userController := user.NewController(server.db)
-	// userHandler := user.NewHandler(userController)
-	// userHandler.RegisterRoutes(router)
+	userController := user.NewUserController(server.db)
+	userHandler := user.NewHandler(*userController)
+	userHandler.RegisterRoutes(router)
 
 	// exerciseController := exercise.NewController(server.db)
 	// exerciseHandler := exercise.NewHandler(exerciseController)
@@ -45,7 +46,7 @@ func (server *Server) Run() {
 
 	// userWorkoutController := userWorkout.NewController(server.db)
 	newController := userWorkout.NewUserWorkoutController(server.db)
-	userWorkoutHandler := userWorkout.NewHandler(*newController)
+	userWorkoutHandler := userWorkout.NewHandler(*newController, *userController)
 	userWorkoutHandler.RegisterRoutes(router)
 
 	// userWorkoutExerciseController := userWorkoutExercise.NewController(server.db)

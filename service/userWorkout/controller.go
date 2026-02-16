@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/IkBenJur/repetition-backend/service"
+	base "github.com/IkBenJur/repetition-backend/service/baseController"
 	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -126,22 +126,31 @@ func (controller *Controller) FindAllWorkoutsForUserId(userId int) ([]*types.Use
 	return userWorkouts, nil
 }
 
-func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWorkout, error) {
-	whereClause := `uw.id = (
-		SELECT active_userworkout_id
-		FROM users
-		WHERE id = $1
-	)`
-	return controller.findWorkout(whereClause, id)
-}
+// func (controller *Controller) FindActiveWorkoutForUserId(id int) (*types.UserWorkout, error) {
+// 	whereClause := `uw.id = (
+// 		SELECT active_userworkout_id
+// 		FROM users
+// 		WHERE id = $1
+// 	)`
+// 	return controller.findWorkout(whereClause, id)
+// }
 
-func (controller *Controller) FindById(workoutId int) (*types.UserWorkout, error) {
-	whereClause := `uw.id = $1`
-	return controller.findWorkout(whereClause, workoutId)
-}
+// func (controller *Controller) FindById(workoutId int) (*types.UserWorkout, error) {
+// 	whereClause := `uw.id = $1`
+// 	return controller.findWorkout(whereClause, workoutId)
+// }
 
-func (controller *Controller) findWorkout(whereClause string, id int) (*types.UserWorkout, error) {
-	// var userWorkout *types.UserWorkout
+func (controller *UserWorkoutController) FindFullUserWorkout(ctx context.Context, id int64, userId int64) (*types.UserWorkout, error) {
+	userWorkout, err := controller.BaseController.FindById(ctx, id, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find all exercises
+
+	// Find each set for exercise
+
+	return userWorkout, nil
 	// exerciseMap := map[int]*types.UserWorkoutExercise{}
 
 	// query := fmt.Sprintf(`SELECT
@@ -260,38 +269,38 @@ func (controller *Controller) MarkUserWorkoutAsComplete(id int) error {
 	return err
 }
 
-var columnDefinitions = []service.ColumnDefinitionInterface{
-	service.NewPrimaryKeyColumnDefinition(
+var columnDefinitions = []base.ColumnDefinitionInterface{
+	base.NewPrimaryKeyColumnDefinition(
 		"id",
 		false,
 		func(w *types.UserWorkout) **int64 { return &w.Id },
 	),
-	service.NewColumnDefinition(
+	base.NewColumnDefinition(
 		"user_id",
 		false,
 		func(w *types.UserWorkout) **int64 { return &w.UserId },
 	),
-	service.NewColumnDefinition(
+	base.NewColumnDefinition(
 		"created_at",
 		false,
 		func(w *types.UserWorkout) **time.Time { return &w.CreatedAt },
 	),
-	service.NewColumnDefinition(
+	base.NewColumnDefinition(
 		"updated_at",
 		true,
 		func(w *types.UserWorkout) **time.Time { return &w.UpdatedAt },
 	),
-	service.NewColumnDefinition(
+	base.NewColumnDefinition(
 		"name",
 		true,
 		func(w *types.UserWorkout) *string { return &w.Name },
 	),
-	service.NewColumnDefinition(
+	base.NewColumnDefinition(
 		"date_start",
 		true,
 		func(w *types.UserWorkout) **time.Time { return &w.DateStart },
 	),
-	service.NewColumnDefinition(
+	base.NewColumnDefinition(
 		"date_end",
 		true,
 		func(w *types.UserWorkout) **time.Time { return &w.DateEnd },
@@ -299,12 +308,12 @@ var columnDefinitions = []service.ColumnDefinitionInterface{
 }
 
 type UserWorkoutController struct {
-	*service.BaseController[types.UserWorkout]
+	*base.BaseController[types.UserWorkout]
 }
 
 func NewUserWorkoutController(db *pgxpool.Pool) *UserWorkoutController {
 	return &UserWorkoutController{
-		BaseController: service.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
+		BaseController: base.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
 	}
 }
 
@@ -340,10 +349,9 @@ func (controller *UserWorkoutController) create(ctx context.Context, entity *typ
 		return -1, err
 	}
 
-	int64Id := int64(newId)
-	entity.Id = &int64Id
+	entity.Id = &newId
 
-	return int64Id, nil
+	return newId, nil
 }
 
 func (controller *UserWorkoutController) update(ctx context.Context, entity *types.UserWorkout) (int64, error) {
@@ -354,11 +362,3 @@ func (controller *UserWorkoutController) update(ctx context.Context, entity *typ
 
 	return updatedId, nil
 }
-
-// func (controller *UserWorkoutController) FindById(ctx context.Context, id int64, userId int64) (*types.UserWorkout, error) {
-// return controller.BaseController.FindById(ctx, id, userId)
-// }
-
-// func (controller *UserWorkoutController) FindList(ctx context.Context, userId int64) ([]*types.UserWorkout, error) {
-// 	return controller.BaseController.FindList(ctx, userId)
-// }

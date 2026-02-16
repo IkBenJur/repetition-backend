@@ -1,0 +1,4 @@
+ALTER TABLE users RENAME TO user_table;
+
+ALTER TABLE user_table ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE user_table RENAME COLUMN createdat TO created_at;

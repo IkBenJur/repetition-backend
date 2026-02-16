@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/IkBenJur/repetition-backend/service/authMiddleware"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	typesUserWorkout "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
@@ -12,16 +14,14 @@ import (
 )
 
 type Handler struct {
-	// controller     Controller
-	// userController types.UserController
-	controller UserWorkoutController
+	userController user.UserController
+	controller     UserWorkoutController
 }
 
-func NewHandler(controller UserWorkoutController) *Handler {
+func NewHandler(controller UserWorkoutController, userController user.UserController) *Handler {
 	return &Handler{
-		// controller:     controller,
-		// userController: userController,
-		controller: controller,
+		userController: userController,
+		controller:     controller,
 	}
 }
 
@@ -34,12 +34,12 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 	// router.GET("/user-workout/active", auth.WithJWTAuth(handler.userController), handler.handleFindActiveUserWorkout)
 	// router.GET("/user-workout/:id", auth.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
 	// router.PUT("/user-workout/:id/mark-complete", auth.WithJWTAuth(handler.userController), handler.handleMarkUserworkoutAsComplete)
-	router.GET("/user-workout/:id", handler.handleGetByUserWorkoutId)
-	router.GET("/user-workout", handler.handleFindList)
-	router.POST("/user-workout", handler.handleCreateNewUserWorkout)
-	router.PUT("/user-workout", handler.handleUpdateUserWorkout)
-	router.POST("/user-workout-bulk", handler.handleBulkInsertUserWorkout)
-	router.POST("/user-workout-batch", handler.handleBatchInsertUserWorkout)
+	router.GET("/user-workout/:id", authMiddleware.WithJWTAuth(handler.userController), handler.handleGetByUserWorkoutId)
+	router.GET("/user-workout", authMiddleware.WithJWTAuth(handler.userController), handler.handleFindList)
+	router.POST("/user-workout", authMiddleware.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkout)
+	router.PUT("/user-workout", authMiddleware.WithJWTAuth(handler.userController), handler.handleUpdateUserWorkout)
+	router.POST("/user-workout-bulk", authMiddleware.WithJWTAuth(handler.userController), handler.handleBulkInsertUserWorkout)
+	router.POST("/user-workout-batch", authMiddleware.WithJWTAuth(handler.userController), handler.handleBatchInsertUserWorkout)
 }
 
 func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
@@ -57,8 +57,7 @@ func (handler *Handler) handleCreateNewUserWorkout(c *gin.Context) {
 	}
 
 	// Set the userId to that of the logged in user
-	// userId := int64(c.GetInt("userId"))
-	userId := int64(1)
+	userId := c.GetInt64("userId")
 	newUserWorkout.UserId = &userId
 
 	userWorkout, err := newUserWorkout.ToEntity()
@@ -122,8 +121,8 @@ func (handler *Handler) handleUpdateUserWorkout(c *gin.Context) {
 	}
 
 	// Validate user id
-	// userId := int64(c.GetInt("userId"))
-	userId := int64(1)
+	userId := c.GetInt64("userId")
+
 	if *userWorkout.UserId != userId {
 		fmt.Printf("userWorkout.UserdId: %v. userId: %v. %v", userWorkout.UserId, userId, userWorkout.UserId != &userId)
 		c.JSON(http.StatusForbidden, gin.H{"error": "something went wrong"})
@@ -149,8 +148,7 @@ func (handler *Handler) handleBulkInsertUserWorkout(c *gin.Context) {
 	}
 
 	// Get logged in user Id
-	// userId := int64(c.GetInt("userId"))
-	userId := int64(1)
+	userId := c.GetInt64("userId")
 
 	userWorkouts := make([]*typesUserWorkout.UserWorkout, len(userWorkoutsPayload))
 	for i, payload := range userWorkoutsPayload {
@@ -192,8 +190,7 @@ func (handler *Handler) handleBatchInsertUserWorkout(c *gin.Context) {
 	}
 
 	// Get logged in user Id
-	// userId := int64(c.GetInt("userId"))
-	userId := int64(1)
+	userId := c.GetInt64("userId")
 
 	userWorkouts := make([]*typesUserWorkout.UserWorkout, len(userWorkoutsPayload))
 	for i, payload := range userWorkoutsPayload {
@@ -227,8 +224,7 @@ func (handler *Handler) handleBatchInsertUserWorkout(c *gin.Context) {
 }
 
 func (handler *Handler) handleFindList(c *gin.Context) {
-	// TODO Find userId
-	userId := int64(1)
+	userId := c.GetInt64("userId")
 
 	// Find user workouts
 	userWorkouts, err := handler.controller.FindList(c.Request.Context(), userId)
@@ -241,8 +237,7 @@ func (handler *Handler) handleFindList(c *gin.Context) {
 }
 
 func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
-	// userId := c.GetInt("userId")
-	userId := int64(1)
+	userId := c.GetInt64("userId")
 	userWorkoutIdParam := c.Param("id")
 
 	userWorkoutId, err := strconv.ParseInt(userWorkoutIdParam, 10, 64)
@@ -257,10 +252,10 @@ func (handler *Handler) handleGetByUserWorkoutId(c *gin.Context) {
 		return
 	}
 
-	// if userId != userWorkout.UserId {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
-	// 	return
-	// }
+	if &userId != userWorkout.UserId {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not your workout!"})
+		return
+	}
 
 	c.JSON(http.StatusOK, userWorkout)
 }

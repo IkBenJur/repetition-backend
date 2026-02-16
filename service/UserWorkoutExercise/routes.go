@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IkBenJur/repetition-backend/service/auth"
+	"github.com/IkBenJur/repetition-backend/service/authMiddleware"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
@@ -14,11 +15,11 @@ import (
 
 type Handler struct {
 	controller            Controller
-	userController        types.UserController
+	userController        user.UserController
 	userWorkoutController userWorkout.Controller
 }
 
-func NewHandler(controller Controller, userController types.UserController, userWorkoutController userWorkout.Controller) *Handler {
+func NewHandler(controller Controller, userController user.UserController, userWorkoutController userWorkout.Controller) *Handler {
 	return &Handler{
 		controller:            controller,
 		userController:        userController,
@@ -27,7 +28,7 @@ func NewHandler(controller Controller, userController types.UserController, user
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/userWorkoutExercise", auth.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkoutExercise)
+	router.POST("/userWorkoutExercise", authMiddleware.WithJWTAuth(handler.userController), handler.handleCreateNewUserWorkoutExercise)
 }
 
 func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {

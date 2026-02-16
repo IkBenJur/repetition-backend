@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	userWorkoutExercise "github.com/IkBenJur/repetition-backend/service/UserWorkoutExercise"
-	"github.com/IkBenJur/repetition-backend/service/auth"
+	"github.com/IkBenJur/repetition-backend/service/authMiddleware"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/types"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
@@ -14,11 +15,11 @@ import (
 
 type Handler struct {
 	controller                    Controller
-	userController                types.UserController
+	userController                user.UserController
 	userWorkoutExerciseController userWorkoutExercise.Controller
 }
 
-func NewHandler(controller Controller, userController types.UserController, userWorkoutExerciseController userWorkoutExercise.Controller) *Handler {
+func NewHandler(controller Controller, userController user.UserController, userWorkoutExerciseController userWorkoutExercise.Controller) *Handler {
 	return &Handler{
 		controller:                    controller,
 		userController:                userController,
@@ -27,8 +28,8 @@ func NewHandler(controller Controller, userController types.UserController, user
 }
 
 func (handler *Handler) RegisterRoutes(router *gin.Engine) {
-	router.POST("/userWorkoutExerciseSet", auth.WithJWTAuth(handler.userController), handler.handleCreateOrUpdateUserWorkoutExerciseSet)
-	router.PUT("/userWorkoutExerciseSet/:id", auth.WithJWTAuth(handler.userController), handler.handleCreateOrUpdateUserWorkoutExerciseSet)
+	router.POST("/userWorkoutExerciseSet", authMiddleware.WithJWTAuth(handler.userController), handler.handleCreateOrUpdateUserWorkoutExerciseSet)
+	router.PUT("/userWorkoutExerciseSet/:id", authMiddleware.WithJWTAuth(handler.userController), handler.handleCreateOrUpdateUserWorkoutExerciseSet)
 }
 
 func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Context) {

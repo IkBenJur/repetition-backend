@@ -8,18 +8,18 @@ import (
 
 	"github.com/IkBenJur/repetition-backend/config"
 	"github.com/IkBenJur/repetition-backend/service/auth"
-	"github.com/IkBenJur/repetition-backend/types"
+	types "github.com/IkBenJur/repetition-backend/types/user"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
-	controller types.UserController
+	controller UserController
 	logger     *slog.Logger
 }
 
-func NewHandler(controller types.UserController) *Handler {
+func NewHandler(controller UserController) *Handler {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -38,7 +38,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 func (handler *Handler) handleLogin(c *gin.Context) {
 	clientIP := c.ClientIP()
 
-	var loginUser types.LoginUserPayload
+	var loginUser types.UserPayload
 
 	// Parse JSON
 	if err := c.ShouldBindJSON(&loginUser); err != nil {
@@ -67,7 +67,7 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 		"ip", clientIP,
 	)
 
-	user, err := handler.controller.GetUserByUsername(loginUser.Username)
+	user, err := handler.controller.GetUserByUsername(c.Request.Context(), loginUser.Username)
 	if err != nil {
 		handler.logger.Warn("Login failed - user not found",
 			"username", loginUser.Username,
@@ -81,18 +81,18 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 	if !auth.ComparePassword(user.Password, loginUser.Password) {
 		handler.logger.Warn("Login failed - invalid password",
 			"username", loginUser.Username,
-			"user_id", user.ID,
+			"user_id", user.Id,
 			"ip", clientIP,
 		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid login"})
 		return
 	}
 
-	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID)
+	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), int(*user.Id))
 	if err != nil {
 		handler.logger.Error("Failed to create JWT token",
 			"username", loginUser.Username,
-			"user_id", user.ID,
+			"user_id", user.Id,
 			"ip", clientIP,
 			"error", err.Error(),
 		)
@@ -102,7 +102,7 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 
 	handler.logger.Info("Login successful",
 		"username", loginUser.Username,
-		"user_id", user.ID,
+		"user_id", user.Id,
 		"ip", clientIP,
 	)
 
@@ -110,7 +110,7 @@ func (handler *Handler) handleLogin(c *gin.Context) {
 }
 
 func (handler *Handler) handleRegister(c *gin.Context) {
-	var newUser types.RegisterUserPayload
+	var newUser types.UserPayload
 
 	// Parse JSON
 	if err := c.ShouldBindJSON(&newUser); err != nil {
@@ -125,25 +125,26 @@ func (handler *Handler) handleRegister(c *gin.Context) {
 		return
 	}
 
+	user := newUser.ToEntity()
+
 	// Check if user exists
-	_, err := handler.controller.GetUserByUsername(newUser.Username)
+	_, err := handler.controller.GetUserByUsername(c.Request.Context(), user.Username)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User with username already exists"})
 		return
 	}
 
 	// Hash
-	hashedPassword, err := auth.HashPassword(newUser.Password)
+	hashedPassword, err := auth.HashPassword(user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
+	user.Password = hashedPassword
+
 	// Create new user
-	err = handler.controller.CreateNewUser(types.User{
-		Username: newUser.Username,
-		Password: hashedPassword,
-	})
+	_, err = handler.controller.Save(c.Request.Context(), user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return

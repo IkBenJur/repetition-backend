@@ -1,89 +1,96 @@
 package user
 
 import (
-	"database/sql"
+	"context"
+	"fmt"
+	"time"
 
-	"github.com/IkBenJur/repetition-backend/types"
+	base "github.com/IkBenJur/repetition-backend/service/baseController"
+	types "github.com/IkBenJur/repetition-backend/types/user"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Controller struct {
-	db *sql.DB
+var columnDefinitions = []base.ColumnDefinitionInterface{
+	base.NewPrimaryKeyColumnDefinition(
+		"id",
+		false,
+		func(w *types.User) **int64 { return &w.Id },
+	),
+	base.NewColumnDefinition(
+		"created_at",
+		false,
+		func(w *types.User) **time.Time { return &w.CreatedAt },
+	),
+	base.NewColumnDefinition(
+		"updated_at",
+		true,
+		func(w *types.User) **time.Time { return &w.UpdatedAt },
+	),
+	base.NewColumnDefinition(
+		"username",
+		true,
+		func(w *types.User) *string { return &w.Username },
+	),
+	base.NewColumnDefinition(
+		"password",
+		true,
+		func(w *types.User) *string { return &w.Password },
+	),
+	base.NewColumnDefinition(
+		"active_userworkout_id",
+		true,
+		func(w *types.User) **int64 { return &w.ActiveUserWorkoutId },
+	),
 }
 
-func NewController(db *sql.DB) *Controller {
-	return &Controller{db: db}
+type UserController struct {
+	*base.BaseController[types.User]
 }
 
-func (controller *Controller) GetUserByUsername(username string) (*types.User, error) {
-	rows, err := controller.db.Query("SELECT * FROM users WHERE username = $1", username)
-	if err != nil {
-		return nil, err
+func NewUserController(db *pgxpool.Pool) *UserController {
+	return &UserController{
+		BaseController: base.NewBaseController[types.User](db, "user_table", columnDefinitions),
 	}
-	defer rows.Close()
-
-	user := new(types.User)
-
-	for rows.Next() {
-		user, err = scanRowIntoUser(rows)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return user, nil
 }
 
-func (controller *Controller) CreateNewUser(user types.User) error {
-	_, err := controller.db.Exec("INSERT INTO users (username, password) VALUES ($1, $2)", user.Username, user.Password)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (controller *Controller) UpdateUser(user types.User) error {
-	_, err := controller.db.Exec("UPDATE users SET username = $2, password = $3, active_userworkout_id = $4 WHERE id = $1", user.ID, user.Username, user.Password, user.ActiveUserWorkoutId)
-	return err
-}
-
-func (controller *Controller) GetUserById(id int) (*types.User, error) {
-	rows, err := controller.db.Query("SELECT * FROM users WHERE id = $1 LIMIT 1", id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	user := new(types.User)
-
-	for rows.Next() {
-		user, err = scanRowIntoUser(rows)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return user, nil
-}
-
-func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
-	user := new(types.User)
-
-	err := rows.Scan(
-		&user.ID,
-		&user.Username,
-		&user.Password,
-		&user.CreatedAt,
-		&user.ActiveUserWorkoutId,
+func (controller *UserController) FindById(ctx context.Context, id int64) (*types.User, error) {
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE id = $1",
+		controller.BaseController.SelectColumns,
+		controller.BaseController.TableName,
 	)
+
+	rows, err := controller.BaseController.DB.Query(ctx, query, id)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return user, nil
+	return controller.BaseController.ScanRow(rows)
 }
 
-func (controller *Controller) UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error {
-	_, err := controller.db.Exec("UPDATE users SET active_userworkout_id = $1 WHERE id = $2", activeUserWorkoutId, userId)
-	return err
+func (controller *UserController) GetUserByUsername(ctx context.Context, username string) (*types.User, error) {
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE username = $1",
+		controller.BaseController.SelectColumns,
+		controller.BaseController.TableName,
+	)
+
+	rows, err := controller.BaseController.DB.Query(ctx, query, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return controller.BaseController.ScanRow(rows)
+}
+
+func (controller *UserController) Save(ctx context.Context, user *types.User) (int64, error) {
+	user.Touch()
+
+	if user.IsNew() {
+		return controller.Create(ctx, user)
+	} else {
+		return controller.Update(ctx, user)
+	}
 }

@@ -1,35 +1,19 @@
-package auth
+package authMiddleware
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/IkBenJur/repetition-backend/config"
-	"github.com/IkBenJur/repetition-backend/types"
+	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func CreateJWT(secret []byte, userId int) (string, error) {
-	tokenTimeout := time.Second * time.Duration(3600*24*7) // One week
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userId": strconv.Itoa(userId),
-		"expiredAt": time.Now().Add(tokenTimeout).Unix(),
-	})
-
-	tokenString, err := token.SignedString(secret)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
-func WithJWTAuth(userController types.UserController) gin.HandlerFunc {
+func WithJWTAuth(userController user.UserController) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := getJwtToken(c.Request)
 		if tokenString == "" {
@@ -53,9 +37,9 @@ func WithJWTAuth(userController types.UserController) gin.HandlerFunc {
 		claims := token.Claims.(jwt.MapClaims)
 		useIdString := claims["userId"].(string)
 
-		userId, _ := strconv.Atoi(useIdString)
+		userId, _ := strconv.ParseInt(useIdString, 10, 64)
 
-		if _, err := userController.GetUserById(userId); err != nil {
+		if _, err := userController.FindById(context.Background(), int64(userId)); err != nil {
 			log.Printf("User does not exists: %v", userId)
 			permissionDenied(c)
 			return

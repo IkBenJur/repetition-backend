@@ -78,8 +78,8 @@ func (controller *UserWorkoutExerciseController) DetermineExerciseNumberForNewUs
 	err := controller.DB.QueryRow(
 		ctx,
 		`SELECT COALESCE(MAX(exercise_number), 0)
-			 FROM userworkoutexercise
-			 WHERE userWorkoutId = $1`,
+			 FROM user_workout_exercise
+			 WHERE user_workout_id = $1`,
 		userWorkoutId,
 	).Scan(&exerciseNumber)
 
@@ -90,10 +90,10 @@ func (controller *UserWorkoutExerciseController) DetermineExerciseNumberForNewUs
 	return exerciseNumber + 1, err
 }
 
-func (controller *UserWorkoutExerciseController) FindUserIdForUserWorkoutExerciseId(ctx context.Context, id int) (int, error) {
+func (controller *UserWorkoutExerciseController) FindUserIdForUserWorkoutExerciseId(ctx context.Context, id int) (int64, error) {
 	rows, err := controller.DB.Query(
 		ctx,
-		"SELECT uw.userid FROM userworkoutexercise uwe JOIN userworkout uw ON uw.id = uwe.userworkoutid WHERE uwe.id = $1 LIMIT 1",
+		"SELECT uwe.user_id FROM user_workout_exercise uwe WHERE uwe.id = $1 LIMIT 1",
 		id)
 	if err != nil {
 		return 0, err
@@ -108,5 +108,5 @@ func (controller *UserWorkoutExerciseController) FindUserIdForUserWorkoutExercis
 		}
 	}
 
-	return userId, nil
+	return int64(userId), nil
 }

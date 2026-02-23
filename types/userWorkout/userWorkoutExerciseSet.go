@@ -39,6 +39,7 @@ func (payload *UserWorkoutExerciseSetPayload) ToEntity() (*UserWorkoutExerciseSe
 type UserWorkoutExerciseSet struct {
 	types.BaseEntity
 	UserWorkoutExerciseId int
+	LoadPrescriptionId    int
 	Reps                  *int
 	SetNumber             *int
 	IsDone                bool

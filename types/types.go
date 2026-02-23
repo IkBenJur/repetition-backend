@@ -72,15 +72,15 @@ type Exercise struct {
 // 	ExerciseName            *string
 // }
 
-type UserWorkoutExerciseSet struct {
-	ID                    int
-	UserWorkoutExerciseId int
-	Reps                  *int
-	Weight                *float64
-	SetNumber             *int
-	IsDone                bool
-	CreatedAt             time.Time
-}
+// type UserWorkoutExerciseSet struct {
+// 	ID                    int
+// 	UserWorkoutExerciseId int
+// 	Reps                  *int
+// 	Weight                *float64
+// 	SetNumber             *int
+// 	IsDone                bool
+// 	CreatedAt             time.Time
+// }
 
 // type UserWorkoutExercisePayload struct {
 // 	ExerciseId              int                             `json:"exerciseId" validate:"required"`
@@ -105,39 +105,39 @@ type UserWorkoutExerciseSet struct {
 // 	}
 // }
 
-type UserWorkoutExerciseSetPayload struct {
-	ID                    *int     `json:"id"`
-	UserWorkoutExerciseId int      `json:"userWorkoutExerciseId" validate:"required"`
-	Reps                  *int     `json:"reps"`
-	Weight                *float64 `json:"weight"`
-	SetNumber             *int     `json:"setNumber"`
-	IsDone                *bool    `json:"isDone"`
-}
+// type UserWorkoutExerciseSetPayload struct {
+// 	ID                    *int     `json:"id"`
+// 	UserWorkoutExerciseId int      `json:"userWorkoutExerciseId" validate:"required"`
+// 	Reps                  *int     `json:"reps"`
+// 	Weight                *float64 `json:"weight"`
+// 	SetNumber             *int     `json:"setNumber"`
+// 	IsDone                *bool    `json:"isDone"`
+// }
 
-func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet {
-	id := 0
-	if payload.ID != nil {
-		id = *payload.ID
-	}
+// func (payload UserWorkoutExerciseSetPayload) ToEntity() *UserWorkoutExerciseSet {
+// 	id := 0
+// 	if payload.ID != nil {
+// 		id = *payload.ID
+// 	}
 
-	isDone := false
-	if payload.IsDone != nil {
-		isDone = *payload.IsDone
-	}
+// 	isDone := false
+// 	if payload.IsDone != nil {
+// 		isDone = *payload.IsDone
+// 	}
 
-	return &UserWorkoutExerciseSet{
-		ID:                    id,
-		UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
-		Reps:                  payload.Reps,
-		Weight:                payload.Weight,
-		SetNumber:             payload.SetNumber,
-		IsDone:                isDone,
-	}
-}
+// 	return &UserWorkoutExerciseSet{
+// 		ID:                    id,
+// 		UserWorkoutExerciseId: payload.UserWorkoutExerciseId,
+// 		Reps:                  payload.Reps,
+// 		Weight:                payload.Weight,
+// 		SetNumber:             payload.SetNumber,
+// 		IsDone:                isDone,
+// 	}
+// }
 
-func (payload UserWorkoutExerciseSetPayload) IsUpdate() bool {
-	return payload.ID != nil && *payload.ID > 0
-}
+// func (payload UserWorkoutExerciseSetPayload) IsUpdate() bool {
+// 	return payload.ID != nil && *payload.ID > 0
+// }
 
 // type NewUserWorkoutPayload struct {
 // 	Name                 string                       `json:"name" validate:"required"`

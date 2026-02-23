@@ -1,31 +1,90 @@
 package userWorkoutExerciseSet
 
 import (
-	"database/sql"
+	"context"
+	"time"
 
-	"github.com/IkBenJur/repetition-backend/types"
+	base "github.com/IkBenJur/repetition-backend/service/baseController"
+	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Controller struct {
-	db *sql.DB
+type UserWorkoutExerciseSetController struct {
+	*base.BaseController[types.UserWorkoutExerciseSet]
 }
 
-func NewController(db *sql.DB) *Controller {
-	return &Controller{db: db}
+var columnDefinitions = []base.ColumnDefinitionInterface{
+	base.NewPrimaryKeyColumnDefinition(
+		"id",
+		false,
+		func(w *types.UserWorkoutExerciseSet) **int64 { return &w.Id },
+	),
+	base.NewColumnDefinition(
+		"user_id",
+		false,
+		func(w *types.UserWorkoutExerciseSet) **int64 { return &w.UserId },
+	),
+	base.NewColumnDefinition(
+		"created_at",
+		false,
+		func(w *types.UserWorkoutExerciseSet) **time.Time { return &w.CreatedAt },
+	),
+	base.NewColumnDefinition(
+		"updated_at",
+		true,
+		func(w *types.UserWorkoutExerciseSet) **time.Time { return &w.UpdatedAt },
+	),
+	base.NewColumnDefinition(
+		"user_workout_exercise_id",
+		true,
+		func(w *types.UserWorkoutExerciseSet) *int { return &w.UserWorkoutExerciseId },
+	),
+	base.NewColumnDefinition(
+		"reps",
+		true,
+		func(w *types.UserWorkoutExerciseSet) **int { return &w.Reps },
+	),
+	base.NewColumnDefinition(
+		"set_number",
+		true,
+		func(w *types.UserWorkoutExerciseSet) **int { return &w.SetNumber },
+	),
+	base.NewColumnDefinition(
+		"is_done",
+		true,
+		func(w *types.UserWorkoutExerciseSet) *bool { return &w.IsDone },
+	),
+	base.NewColumnDefinition(
+		"load_prescription_id",
+		true,
+		func(w *types.UserWorkoutExerciseSet) *bool { return &w.IsDone },
+	),
 }
 
-func (controller *Controller) CreateNewUserWorkoutExerciseSet(workoutExerciseSet types.UserWorkoutExerciseSet) (int, error) {
-	var workoutExerciseSetId int
-	err := controller.db.QueryRow("INSERT INTO userworkoutexerciseset (userworkoutexerciseid, reps, weight, set_number, is_done) VALUES ($1, $2, $3, $4, $5) RETURNING id", workoutExerciseSet.UserWorkoutExerciseId, workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.SetNumber, workoutExerciseSet.IsDone).Scan(&workoutExerciseSetId)
-
-	return workoutExerciseSetId, err
+func NewUserWorkoutExerciseSetController(db *pgxpool.Pool) *UserWorkoutExerciseSetController {
+	return &UserWorkoutExerciseSetController{
+		BaseController: base.NewBaseController[types.UserWorkoutExerciseSet](db, "user_workout_exercise_set", columnDefinitions),
+	}
 }
 
-func (controller *Controller) DetermineSetNumberForNewUserWorkoutExerciseSet(userWorkoutExerciseId int) (int, error) {
+func (controller *UserWorkoutExerciseSetController) Save(ctx context.Context, entity *types.UserWorkoutExerciseSet) (int64, error) {
+	entity.Touch()
+
+	if entity.IsNew() {
+		return controller.Save(ctx, entity)
+	} else {
+		return controller.Update(ctx, entity)
+	}
+}
+
+func (controller *UserWorkoutExerciseSetController) DetermineSetNumberForNewUserWorkoutExerciseSet(
+	ctx context.Context,
+	userWorkoutExerciseId int) (int, error) {
 	var setNumber int
 
 	// When no set number is found return 0.
-	err := controller.db.QueryRow(
+	err := controller.DB.QueryRow(
+		ctx,
 		`SELECT COALESCE(MAX(set_number), 0)
 			 FROM userworkoutexerciseset
 			 WHERE userworkoutexerciseid = $1`,
@@ -37,20 +96,4 @@ func (controller *Controller) DetermineSetNumberForNewUserWorkoutExerciseSet(use
 	}
 
 	return setNumber + 1, err
-}
-
-func (controller *Controller) FindUserIdForSetId(workoutExerciseSet types.UserWorkoutExerciseSet) (int, error) {
-	var userId int
-	err := controller.db.QueryRow(`
-		SELECT workout.userid FROM userworkoutexerciseset exerciseset
-			JOIN userworkoutexercise exercise ON exercise.id = exerciseset.userworkoutexerciseid
-			JOIN userworkout workout ON workout.id = exercise.userworkoutid
-		WHERE exerciseset.id = $1`, workoutExerciseSet.ID).Scan(&userId)
-
-	return userId, err
-}
-
-func (controller *Controller) UpdateUserWorkoutExerciseSet(workoutExerciseSet types.UserWorkoutExerciseSet) error {
-	_, err := controller.db.Exec("UPDATE userworkoutexerciseset SET reps = $1, weight = $2, is_done = $4 WHERE id = $3", workoutExerciseSet.Reps, workoutExerciseSet.Weight, workoutExerciseSet.ID, workoutExerciseSet.IsDone)
-	return err
 }

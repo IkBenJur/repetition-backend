@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	userWorkoutExercise "github.com/IkBenJur/repetition-backend/service/UserWorkoutExercise"
+	userWorkoutExerciseSet "github.com/IkBenJur/repetition-backend/service/UserWorkoutExerciseSet"
 	base "github.com/IkBenJur/repetition-backend/service/baseController"
 	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -309,11 +311,15 @@ var columnDefinitions = []base.ColumnDefinitionInterface{
 
 type UserWorkoutController struct {
 	*base.BaseController[types.UserWorkout]
+	UserWorkoutExerciseController    *userWorkoutExercise.UserWorkoutExerciseController
+	UserWorkoutExerciseSetController *userWorkoutExerciseSet.UserWorkoutExerciseSetController
 }
 
 func NewUserWorkoutController(db *pgxpool.Pool) *UserWorkoutController {
 	return &UserWorkoutController{
-		BaseController: base.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
+		BaseController:                   base.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
+		UserWorkoutExerciseController:    userWorkoutExercise.NewUserWorkoutExerciseController(db),
+		UserWorkoutExerciseSetController: userWorkoutExerciseSet.NewUserWorkoutExerciseSetController(db),
 	}
 }
 
@@ -362,3 +368,5 @@ func (controller *UserWorkoutController) update(ctx context.Context, entity *typ
 
 	return updatedId, nil
 }
+
+// TODO Created transaction function for insert

@@ -7,19 +7,19 @@ import (
 	userWorkoutExercise "github.com/IkBenJur/repetition-backend/service/UserWorkoutExercise"
 	"github.com/IkBenJur/repetition-backend/service/authMiddleware"
 	"github.com/IkBenJur/repetition-backend/service/user"
-	"github.com/IkBenJur/repetition-backend/types"
+	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
-	controller                    Controller
+	controller                    UserWorkoutExerciseSetController
 	userController                user.UserController
-	userWorkoutExerciseController userWorkoutExercise.Controller
+	userWorkoutExerciseController userWorkoutExercise.UserWorkoutExerciseController
 }
 
-func NewHandler(controller Controller, userController user.UserController, userWorkoutExerciseController userWorkoutExercise.Controller) *Handler {
+func NewHandler(controller UserWorkoutExerciseSetController, userController user.UserController, userWorkoutExerciseController userWorkoutExercise.UserWorkoutExerciseController) *Handler {
 	return &Handler{
 		controller:                    controller,
 		userController:                userController,
@@ -33,7 +33,7 @@ func (handler *Handler) RegisterRoutes(router *gin.Engine) {
 }
 
 func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Context) {
-	userId := c.GetInt("userId")
+	userId := c.GetInt64("userId")
 	if userId == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -51,25 +51,23 @@ func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Contex
 		return
 	}
 
-	userWorkoutExerciseSet := payload.ToEntity()
+	userWorkoutExerciseSet, err := payload.ToEntity()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse entity"})
+		return
+	}
 
 	// Check if should update or create
 	if payload.IsUpdate() {
 		// UPDATE existing set
 
 		// Additional authorization check: verify user owns the set being updated
-		existingSetUserId, err := handler.controller.FindUserIdForSetId(*userWorkoutExerciseSet)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Set not found"})
+		if userId != *payload.UserId {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Not your set"})
 			return
 		}
 
-		if existingSetUserId != userId {
-			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to update this set"})
-			return
-		}
-
-		if err := handler.controller.UpdateUserWorkoutExerciseSet(*userWorkoutExerciseSet); err != nil {
+		if _, err := handler.controller.Save(c.Request.Context(), userWorkoutExerciseSet); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update set"})
 			return
 		}
@@ -77,7 +75,7 @@ func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Contex
 		c.JSON(http.StatusOK, userWorkoutExerciseSet)
 	} else {
 		// CREATE new set
-		workoutUserId, err := handler.userWorkoutExerciseController.FindUserIdForUserWorkoutExerciseId(payload.UserWorkoutExerciseId)
+		workoutUserId, err := handler.userWorkoutExerciseController.FindUserIdForUserWorkoutExerciseId(c.Request.Context(), payload.UserWorkoutExerciseId)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Workout exercise not found"})
 			return
@@ -90,7 +88,7 @@ func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Contex
 		}
 
 		// Determine the new setNumber
-		setNumber, err := handler.controller.DetermineSetNumberForNewUserWorkoutExerciseSet(userWorkoutExerciseSet.UserWorkoutExerciseId)
+		setNumber, err := handler.controller.DetermineSetNumberForNewUserWorkoutExerciseSet(c.Request.Context(), userWorkoutExerciseSet.UserWorkoutExerciseId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to determine set number"})
 			return
@@ -98,13 +96,13 @@ func (handler *Handler) handleCreateOrUpdateUserWorkoutExerciseSet(c *gin.Contex
 
 		userWorkoutExerciseSet.SetNumber = &setNumber
 
-		userWorkoutSetId, err := handler.controller.CreateNewUserWorkoutExerciseSet(*userWorkoutExerciseSet)
+		userWorkoutSetId, err := handler.controller.Save(c.Request.Context(), userWorkoutExerciseSet)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create set"})
 			return
 		}
 
-		userWorkoutExerciseSet.ID = userWorkoutSetId
+		userWorkoutExerciseSet.Id = &userWorkoutSetId
 		c.JSON(http.StatusCreated, userWorkoutExerciseSet)
 	}
 }

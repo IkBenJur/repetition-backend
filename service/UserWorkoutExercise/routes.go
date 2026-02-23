@@ -7,19 +7,19 @@ import (
 	"github.com/IkBenJur/repetition-backend/service/authMiddleware"
 	"github.com/IkBenJur/repetition-backend/service/user"
 	"github.com/IkBenJur/repetition-backend/service/userWorkout"
-	"github.com/IkBenJur/repetition-backend/types"
+	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
-	controller            Controller
+	controller            UserWorkoutExerciseController
 	userController        user.UserController
 	userWorkoutController userWorkout.Controller
 }
 
-func NewHandler(controller Controller, userController user.UserController, userWorkoutController userWorkout.Controller) *Handler {
+func NewHandler(controller UserWorkoutExerciseController, userController user.UserController, userWorkoutController userWorkout.Controller) *Handler {
 	return &Handler{
 		controller:            controller,
 		userController:        userController,
@@ -57,9 +57,13 @@ func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {
 		return
 	}
 
-	userWorkoutExercise := newUserWorkoutExercise.ToEntity()
+	userWorkoutExercise, err := newUserWorkoutExercise.ToEntity()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse entity"})
+		return
+	}
 
-	exerciseNumber, err := handler.controller.DetermineExerciseNumberForNewUserWorkoutExercise(userWorkoutExercise.UserWorkoutId)
+	exerciseNumber, err := handler.controller.DetermineExerciseNumberForNewUserWorkoutExercise(c.Request.Context(), userWorkoutExercise.UserWorkoutId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to determine exercise number"})
 		return
@@ -67,13 +71,13 @@ func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {
 
 	userWorkoutExercise.ExerciseNumber = &exerciseNumber
 
-	userWorkoutExerciseId, err := handler.controller.CreateNewUserWorkoutExercise(*userWorkoutExercise)
+	userWorkoutExerciseId, err := handler.controller.Save(c.Request.Context(), userWorkoutExercise)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create"})
 		return
 	}
 
-	userWorkoutExercise.ID = userWorkoutExerciseId
+	userWorkoutExercise.Id = &userWorkoutExerciseId
 
 	c.JSON(http.StatusCreated, userWorkoutExercise)
 }

@@ -60,17 +60,17 @@ type Exercise struct {
 // 	UserWorkoutExercises []*UserWorkoutExercise
 // }
 
-type UserWorkoutExercise struct {
-	ID             int
-	UserWorkoutId  int
-	ExerciseId     int
-	ExerciseNumber *int
-	CreatedAt      time.Time
+// type UserWorkoutExercise struct {
+// 	ID             int
+// 	UserWorkoutId  int
+// 	ExerciseId     int
+// 	ExerciseNumber *int
+// 	CreatedAt      time.Time
 
-	// Joined fields
-	UserWorkoutExerciseSets []*UserWorkoutExerciseSet
-	ExerciseName            *string
-}
+// 	// Joined fields
+// 	UserWorkoutExerciseSets []*UserWorkoutExerciseSet
+// 	ExerciseName            *string
+// }
 
 type UserWorkoutExerciseSet struct {
 	ID                    int
@@ -82,28 +82,28 @@ type UserWorkoutExerciseSet struct {
 	CreatedAt             time.Time
 }
 
-type UserWorkoutExercisePayload struct {
-	ExerciseId              int                             `json:"exerciseId" validate:"required"`
-	ExerciseName            *string                         `json:"exerciseName"`
-	UserWorkoutId           int                             `json:"userWorkoutId" validate:"required"`
-	ExerciseNumber          *int                            `json:"exerciseNumber"`
-	UserWorkoutExerciseSets []UserWorkoutExerciseSetPayload `json:"userWorkoutExerciseSets"`
-}
+// type UserWorkoutExercisePayload struct {
+// 	ExerciseId              int                             `json:"exerciseId" validate:"required"`
+// 	ExerciseName            *string                         `json:"exerciseName"`
+// 	UserWorkoutId           int                             `json:"userWorkoutId" validate:"required"`
+// 	ExerciseNumber          *int                            `json:"exerciseNumber"`
+// 	UserWorkoutExerciseSets []UserWorkoutExerciseSetPayload `json:"userWorkoutExerciseSets"`
+// }
 
-func (payload UserWorkoutExercisePayload) ToEntity() *UserWorkoutExercise {
-	sets := make([]*UserWorkoutExerciseSet, len(payload.UserWorkoutExerciseSets))
-	for i, set := range payload.UserWorkoutExerciseSets {
-		sets[i] = set.ToEntity()
-	}
+// func (payload UserWorkoutExercisePayload) ToEntity() *UserWorkoutExercise {
+// 	sets := make([]*UserWorkoutExerciseSet, len(payload.UserWorkoutExerciseSets))
+// 	for i, set := range payload.UserWorkoutExerciseSets {
+// 		sets[i] = set.ToEntity()
+// 	}
 
-	return &UserWorkoutExercise{
-		UserWorkoutExerciseSets: sets,
-		ExerciseId:              payload.ExerciseId,
-		ExerciseName:            payload.ExerciseName,
-		UserWorkoutId:           payload.UserWorkoutId,
-		ExerciseNumber:          payload.ExerciseNumber,
-	}
-}
+// 	return &UserWorkoutExercise{
+// 		UserWorkoutExerciseSets: sets,
+// 		ExerciseId:              payload.ExerciseId,
+// 		ExerciseName:            payload.ExerciseName,
+// 		UserWorkoutId:           payload.UserWorkoutId,
+// 		ExerciseNumber:          payload.ExerciseNumber,
+// 	}
+// }
 
 type UserWorkoutExerciseSetPayload struct {
 	ID                    *int     `json:"id"`

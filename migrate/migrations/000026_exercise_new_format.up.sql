@@ -1,0 +1,5 @@
+ALTER TABLE exercise RENAME COLUMN createdAt TO created_at;
+ALTER TABLE exercise RENAME COLUMN muscleGroup TO muscle_group;
+ALTER TABLE exercise ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE exercise DROP COLUMN IF EXISTS user_id;
+

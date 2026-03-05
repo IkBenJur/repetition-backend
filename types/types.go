@@ -1,9 +1,5 @@
 package types
 
-import (
-	"time"
-)
-
 // type UserController interface {
 // 	GetUserByUsername(username string) (*User, error)
 // 	CreateNewUser(user User) error
@@ -12,11 +8,11 @@ import (
 // 	UpdateActiveUserWorkoutForUserId(userId int, activeUserWorkoutId int) error
 // }
 
-type ExerciseController interface {
-	GetAllExercise() ([]Exercise, error)
-	GetExerciseById(id int) (*Exercise, error)
-	SaveExercise(exercise Exercise) error
-}
+// type ExerciseController interface {
+// 	GetAllExercise() ([]Exercise, error)
+// 	GetExerciseById(id int) (*Exercise, error)
+// 	SaveExercise(exercise Exercise) error
+// }
 
 // type RegisterUserPayload struct {
 // 	Username string `json:"username" validate:"required"`
@@ -36,18 +32,18 @@ type ExerciseController interface {
 // 	CreatedAt           time.Time
 // }
 
-type NewExercisePayload struct {
-	Name        string `json:"name" validate:"required"`
-	MuscleGroup string `json:"muscleGroup" validate:"required"`
-}
-
-type Exercise struct {
-	ID          int
-	Name        string
-	MuscleGroup string
-	CreatedAt   time.Time
-}
-
+// type NewExercisePayload struct {
+// 	Name        string `json:"name" validate:"required"`
+// 	MuscleGroup string `json:"muscleGroup" validate:"required"`
+// }
+//
+// type Exercise struct {
+// 	ID          int
+// 	Name        string
+// 	MuscleGroup string
+// 	CreatedAt   time.Time
+// }
+//
 // type UserWorkout struct {
 // 	ID        int
 // 	UserId    int

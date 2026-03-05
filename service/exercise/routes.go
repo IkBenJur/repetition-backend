@@ -1,6 +1,7 @@
 package exercise
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,12 +12,18 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type Handler struct {
-	c types.ExerciseController
+type ExerciseService interface {
+	FindAll(ctx context.Context) ([]*types.Exercise, error)
+	FindById(ctx context.Context, id int64) (*types.Exercise, error)
+	Save(ctx context.Context, entity *types.Exercise) (int64, error)
 }
 
-func NewHandler(c types.ExerciseController) *Handler {
-	return &Handler{c: c}
+type Handler struct {
+	service ExerciseService
+}
+
+func NewHandler(service ExerciseService) *Handler {
+	return &Handler{service: service}
 }
 
 func (h *Handler) RegisterRoutes(router *gin.Engine) {
@@ -26,7 +33,7 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 }
 
 func (h *Handler) handleAllExercise(c *gin.Context) {
-	exercises, err := h.c.GetAllExercise()
+	exercises, err := h.service.FindAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
 		return
@@ -36,43 +43,45 @@ func (h *Handler) handleAllExercise(c *gin.Context) {
 }
 
 func (h *Handler) handleNewExercise(c *gin.Context) {
-	var newExercise types.NewExercisePayload
+	var payload types.ExercisePayload
 
-	// Parse JSON
-	if err := c.ShouldBindJSON(&newExercise); err != nil {
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	// Validate struct
-	if err := utils.Validate.Struct(newExercise); err != nil {
+	if err := utils.Validate.Struct(payload); err != nil {
 		errors := err.(validator.ValidationErrors)
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid payload: %v", errors)})
 		return
 	}
 
-	err := h.c.SaveExercise(types.Exercise{
-		Name:        newExercise.Name,
-		MuscleGroup: newExercise.MuscleGroup,
-	})
+	entity, err := payload.ToEntity()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse entity"})
+		return
+	}
+
+	newId, err := h.service.Save(c.Request.Context(), entity)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, nil)
+	entity.Id = &newId
+	c.JSON(http.StatusCreated, entity)
 }
 
 func (h *Handler) handleGetExerciseById(c *gin.Context) {
 	idParam := c.Param("id")
 
-	id, err := strconv.Atoi(idParam)
+	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
 	}
 
-	exercise, err := h.c.GetExerciseById(id)
+	exercise, err := h.service.FindById(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise"})
 		return
@@ -80,3 +89,4 @@ func (h *Handler) handleGetExerciseById(c *gin.Context) {
 
 	c.JSON(http.StatusOK, exercise)
 }
+

@@ -1,29 +1,37 @@
 package userWorkoutExercise
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/IkBenJur/repetition-backend/service/authMiddleware"
 	"github.com/IkBenJur/repetition-backend/service/user"
-	"github.com/IkBenJur/repetition-backend/service/userWorkout"
 	types "github.com/IkBenJur/repetition-backend/types/userWorkout"
 	"github.com/IkBenJur/repetition-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
-type Handler struct {
-	controller            UserWorkoutExerciseController
-	userController        user.UserController
-	userWorkoutController userWorkout.Controller
+type UserWorkoutOwnershipChecker interface {
+	FindUserIdForWorkoutId(ctx context.Context, id int64) (int64, error)
 }
 
-func NewHandler(controller UserWorkoutExerciseController, userController user.UserController, userWorkoutController userWorkout.Controller) *Handler {
+type Handler struct {
+	controller     UserWorkoutExerciseController
+	userController user.UserController
+	ownership      UserWorkoutOwnershipChecker
+}
+
+func NewHandler(
+	controller UserWorkoutExerciseController,
+	userController user.UserController,
+	ownership UserWorkoutOwnershipChecker,
+) *Handler {
 	return &Handler{
-		controller:            controller,
-		userController:        userController,
-		userWorkoutController: userWorkoutController,
+		controller:     controller,
+		userController: userController,
+		ownership:      ownership,
 	}
 }
 
@@ -46,13 +54,16 @@ func (handler *Handler) handleCreateNewUserWorkoutExercise(c *gin.Context) {
 	}
 
 	// Check if user is allowed to add the exercise
-	workoutUserId, err := handler.userWorkoutController.FindUserIdForUserworkoutId(newUserWorkoutExercise.UserWorkoutId)
+	workoutUserId, err := handler.ownership.FindUserIdForWorkoutId(
+		c.Request.Context(),
+		int64(newUserWorkoutExercise.UserWorkoutId),
+	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	if workoutUserId != c.GetInt("userId") {
+	if workoutUserId != int64(c.GetInt("userId")) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}

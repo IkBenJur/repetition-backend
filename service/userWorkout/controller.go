@@ -315,6 +315,24 @@ type UserWorkoutController struct {
 	UserWorkoutExerciseSetController *userWorkoutExerciseSet.UserWorkoutExerciseSetController
 }
 
+func (controller *UserWorkoutController) FindUserIdForWorkoutId(
+	ctx context.Context,
+	id int64,
+) (int64, error) {
+	var userId int64
+
+	err := controller.DB.QueryRow(
+		ctx,
+		"SELECT user_id FROM user_workout WHERE id = $1 LIMIT 1",
+		id,
+	).Scan(&userId)
+	if err != nil {
+		return 0, err
+	}
+
+	return userId, nil
+}
+
 func NewUserWorkoutController(db *pgxpool.Pool) *UserWorkoutController {
 	return &UserWorkoutController{
 		BaseController:                   base.NewBaseController[types.UserWorkout](db, "user_workout", columnDefinitions),
